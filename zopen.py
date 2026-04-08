@@ -1159,22 +1159,25 @@ def install_ed_alias(
     dry_run: bool = False,
     verbose: bool = False,
 ) -> int:
-    """Install an ``ed`` symlink in the first suitable candidate directory.
+    """Install a ``zo`` symlink in the first suitable candidate directory.
 
     Candidate directories (default: ``~/.local/bin``, ``/opt/bin``,
     ``/usr/local/bin``) are tried in order.  For each directory the function:
 
     * Skips if the directory does not exist.
-    * Warns and skips if an ``ed`` entry already exists that does not point
-      to this program.
+    * **Always overwrites** any existing entry in ``~/.local/bin`` (user-level).
+    * Warns and skips if an entry already exists in a system directory that does
+      not point to this program.
     * Warns if the chosen directory appears *after* a directory that already
-      contains a system ``ed`` in PATH (the alias would be shadowed).
+      contains the alias in PATH (the alias would be shadowed).
     * Creates the symlink and stops at the first success.
 
     Returns 0 on success, 1 if no symlink could be created.
     """
     if candidates is None:
         candidates = list(_ALIAS_CANDIDATES)
+
+    user_bin = Path.home() / ".local" / "bin"
 
     edit_exe = _find_self()
     if edit_exe is None:
@@ -1189,30 +1192,47 @@ def install_ed_alias(
     any_created = False
     for target_dir in candidates:
         link_path = target_dir / _ALIAS_NAME
+        is_user_bin = target_dir.resolve() == user_bin.resolve()
 
         if not target_dir.exists():
             if verbose:
                 print(f"  skip {target_dir}: directory does not exist")
             continue
 
-        # --- Conflict check: 'ed' already present in this directory ---
+        # --- Conflict check ---
         if link_path.exists() or link_path.is_symlink():
-            if link_path.is_symlink():
-                dest = link_path.resolve()
-                if dest == edit_exe.resolve():
-                    print(f"✓ {link_path} already points to '{APP_NAME}' — nothing to do")
-                    any_created = True
-                    break
+            if is_user_bin:
+                # User-level location: always overwrite (symlink, broken, or file)
+                if verbose:
+                    print(f"  {link_path}: overwriting existing entry (user-level)")
+                if not dry_run:
+                    link_path.unlink(missing_ok=True)
+                # Fall through to create fresh symlink
+            elif link_path.is_symlink():
+                try:
+                    dest = link_path.resolve(strict=True)
+                except (OSError, RuntimeError):
+                    # Broken or looping symlink — safe to replace
+                    print(f"⚠  {link_path} is a broken/looping symlink — removing it")
+                    if not dry_run:
+                        link_path.unlink()
+                    # Fall through to create a fresh symlink
                 else:
-                    print(
-                        f"⚠  {link_path} exists and points to {dest} "
-                        f"(not '{APP_NAME}') — skipping this location"
-                    )
+                    if dest == edit_exe.resolve():
+                        print(f"✓ {link_path} already points to '{APP_NAME}' — nothing to do")
+                        any_created = True
+                        break
+                    else:
+                        print(
+                            f"⚠  {link_path} exists and points to {dest} "
+                            f"(not '{APP_NAME}') — skipping this location"
+                        )
+                        continue
             else:
                 print(f"⚠  {link_path} exists as a real file/directory — skipping")
-            continue
+                continue
 
-        # --- Shadowing check: is there a higher-priority 'ed' in PATH? ---
+        # --- Shadowing check: is there a higher-priority alias in PATH? ---
         system_ed = shutil.which(_ALIAS_NAME)
         if system_ed and Path(system_ed).resolve() != edit_exe.resolve():
             sys_ed_dir = Path(system_ed).parent
