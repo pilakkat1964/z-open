@@ -1,14 +1,14 @@
-# edit — smart file editor launcher
+# zedit — smart file editor launcher
 
-`edit` opens files in the right editor automatically. It detects each file's
+`zedit` opens files in the right editor automatically. It detects each file's
 MIME type (via **libmagic** or the `mimetypes` stdlib) and maps it to an editor
 through a layered TOML configuration — system-wide, per-user, and per-project.
 
 ```
-edit main.py          → vim          (text/x-python mapping)
-edit report.pdf       → evince       (application/pdf mapping)
-edit image.png        → gimp         (image/png mapping)
-edit README.md        → typora       (.md extension mapping)
+zedit main.py          → vim          (text/x-python mapping)
+zedit report.pdf       → evince       (application/pdf mapping)
+zedit image.png        → gimp         (image/png mapping)
+zedit README.md        → typora       (.md extension mapping)
 ```
 
 ---
@@ -21,11 +21,11 @@ pip install .                   # from source
 pip install ".[magic]"          # with accurate content-based MIME detection
 
 # Use
-edit myfile.py                  # open with the configured editor
-ed myfile.py                    # same — 'ed' is a symlink/alias for 'edit'
-edit --dry-run *.md             # preview without opening
-edit --list                     # show all configured mappings
-edit --init-config              # scaffold ~/.config/edit/config.toml
+zedit myfile.py                  # open with the configured editor
+ze myfile.py                    # same — 'ze' is a symlink/alias for 'zedit'
+zedit --dry-run *.md             # preview without opening
+zedit --list                     # show all configured mappings
+zedit --init-config              # scaffold ~/.config/zedit/config.toml
 ```
 
 ---
@@ -47,9 +47,9 @@ Config files are TOML, loaded and deep-merged in this order:
 | Priority | Location | Purpose |
 |---|---|---|
 | 1 | Built-in defaults | Always present |
-| 2 | `/etc/edit/config.toml` | System-wide (installed by OS package) |
-| 3 | `~/.config/edit/config.toml` | User-global |
-| 4 | `./.edit.toml` in CWD | Project-local |
+| 2 | `/etc/zedit/config.toml` | System-wide (installed by OS package) |
+| 3 | `~/.config/zedit/config.toml` | User-global |
+| 4 | `./.zedit.toml` in CWD | Project-local |
 | 5 | `--config FILE` | Ad-hoc override |
 
 ```toml

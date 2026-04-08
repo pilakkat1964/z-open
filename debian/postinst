@@ -4,29 +4,29 @@ set -e
 
 case "$1" in
     configure)
-        # Ensure the system config directory exists with correct permissions
-        if [ ! -d /etc/edit ]; then
-            mkdir -p /etc/edit
+        # Ensure /opt/bin exists so the symlink installed by CMake is usable
+        # immediately after dpkg unpacks the package.
+        if [ ! -d /opt/bin ]; then
+            mkdir -p /opt/bin
         fi
 
-        # Attempt to create an 'ed' alias in a non-distro-managed location.
-        # We try /usr/local/bin first, then /opt/bin.  Neither is owned by
-        # the classic 'ed' package, so no Breaks/Replaces stanza is needed.
-        _edit_bin=/usr/bin/edit
+        # Attempt to create a 'ze' alias inside the package bin dir.
+        # /opt/zedit/bin is not managed by any system package, so no
+        # Breaks/Replaces stanza is needed.
+        _edit_bin=/opt/zedit/bin/zedit
         _created=0
-        for _dir in /usr/local/bin /opt/bin; do
+        for _dir in /opt/zedit/bin; do
             if [ ! -d "$_dir" ]; then
                 continue
             fi
-            _link="$_dir/ed"
+            _link="$_dir/ze"
             if [ -e "$_link" ] || [ -L "$_link" ]; then
                 _target=$(readlink "$_link" 2>/dev/null || true)
-                if [ "$_target" = "$_edit_bin" ] || [ "$_target" = "edit" ]; then
-                    # Already our symlink — nothing to do
+                if [ "$_target" = "$_edit_bin" ] || [ "$_target" = "zedit" ]; then
                     _created=1
                     break
                 else
-                    echo "edit: note: '$_link' already exists (→ ${_target:-regular file}); skipping alias in $_dir" >&2
+                    echo "zedit: note: '$_link' already exists (→ ${_target:-regular file}); skipping alias in $_dir" >&2
                     continue
                 fi
             fi
@@ -34,18 +34,18 @@ case "$1" in
             # Shadowing check: warn if the system 'ed' is higher in PATH
             _sys_ed=$(command -v ed 2>/dev/null || true)
             if [ -n "$_sys_ed" ] && [ "$_sys_ed" != "$_link" ]; then
-                echo "edit: note: '$_sys_ed' exists; '$_link' may be shadowed if $_sys_ed's directory is earlier in PATH" >&2
+                echo "zedit: note: '$_sys_ed' exists; '$_link' may be shadowed if $_sys_ed's directory is earlier in PATH" >&2
             fi
 
-            ln -sf "$_edit_bin" "$_link"
-            echo "edit: created alias: $_link → $_edit_bin"
+            ln -sf zedit "$_link"
+            echo "zedit: created alias: $_link → zedit"
             _created=1
             break
         done
 
         if [ "$_created" = "0" ]; then
-            echo "edit: could not create 'ed' alias automatically." >&2
-            echo "edit: run 'edit --install-alias' as the target user to create it." >&2
+            echo "zedit: could not create 'ze' alias automatically." >&2
+            echo "zedit: run 'zedit --install-alias' as the target user to create it." >&2
         fi
         ;;
 esac

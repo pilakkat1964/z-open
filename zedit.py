@@ -8,9 +8,9 @@ over the extension when both would match unless overridden by config.
 
 Configuration is loaded from (in order, later entries override earlier):
   1. Built-in defaults
-  2. /etc/edit/config.toml        (system-wide config, path via $EDIT_SYSCONFDIR)
-  3. ~/.config/edit/config.toml   (user global config)
-  4. ./.edit.toml                 (project-local config, overrides global)
+  2. /etc/zedit/config.toml        (system-wide config, path via $ZEDIT_SYSCONFDIR)
+  3. ~/.config/zedit/config.toml   (user global config)
+  4. ./.zedit.toml                 (project-local config, overrides global)
   5. --config FILE                (ad-hoc override on the command line)
 
 Use --install-alias to create an 'ed' shortcut in a non-conflicting location.
@@ -47,12 +47,12 @@ except ImportError:
 # Constants
 # ---------------------------------------------------------------------------
 
-APP_NAME = "edit"
+APP_NAME = "zedit"
 
 # Candidate directories for the 'ed' symlink alias, tried in order.
 # These are all user-accessible or local-admin locations that do not
 # overlap with distro-managed paths such as /usr/bin.
-_ALIAS_NAME = "ed"
+_ALIAS_NAME = "ze"
 _ALIAS_CANDIDATES: list[Path] = [
     Path.home() / ".local" / "bin",  # XDG user bin (pip --user default)
     Path("/opt/bin"),                  # site-local optional programs
@@ -206,11 +206,11 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 def _system_config_path() -> Path:
     """Return the system-wide config path.
 
-    The directory can be overridden at install time via the ``EDIT_SYSCONFDIR``
+    The directory can be overridden at install time via the ``ZEDIT_SYSCONFDIR``
     environment variable (used by staged/packaged installs to point at the
     correct prefix before the final install step completes).
     """
-    sysconfdir = os.environ.get("EDIT_SYSCONFDIR", "/etc")
+    sysconfdir = os.environ.get("ZEDIT_SYSCONFDIR", "/etc")
     return Path(sysconfdir) / APP_NAME / "config.toml"
 
 
@@ -224,9 +224,9 @@ def load_config(extra_config: Path | None = None) -> dict[str, Any]:
 
     Priority order (lowest → highest):
       1. Built-in defaults          (hardcoded in this module)
-      2. System-wide config         (/etc/edit/config.toml  or $EDIT_SYSCONFDIR)
-      3. User-global config         (~/.config/edit/config.toml)
-      4. Project-local config       (./.edit.toml  in CWD)
+      2. System-wide config         (/etc/zedit/config.toml  or $ZEDIT_SYSCONFDIR)
+      3. User-global config         (~/.config/zedit/config.toml)
+      4. Project-local config       (./.zedit.toml  in CWD)
       5. Ad-hoc --config FILE       (command-line override)
     """
     cfg = _parse_toml_str(_DEFAULT_CONFIG_TOML)
@@ -389,8 +389,8 @@ def write_default_config(path: Path) -> None:
 # edit configuration file
 #
 # Locations searched (later files override earlier ones):
-#   ~/.config/edit/config.toml   — user-global config  (this file)
-#   ./.edit.toml                 — project-local override
+#   ~/.config/zedit/config.toml   — user-global config  (this file)
+#   ./.zedit.toml                 — project-local override
 #
 # Editor values may be:
 #   - A plain command name:       "vim", "nano", "code --wait"
@@ -432,7 +432,7 @@ def print_mappings(cfg: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 def _find_self() -> Path | None:
-    """Locate the installed 'edit' executable."""
+    """Locate the installed 'zedit' executable."""
     found = shutil.which(APP_NAME)
     if found:
         return Path(found)
@@ -564,7 +564,7 @@ def cmd_map_editor(
     Detects the MIME type and extension of *file_path*, shows the current
     effective mapping (from the merged config stack), then prompts the user
     for a new editor value.  The result is written to the user config file
-    (``~/.config/edit/config.toml``) only — lower-priority layers are not
+    (``~/.config/zedit/config.toml``) only — lower-priority layers are not
     touched.
     """
     # --- Detect ---
@@ -709,7 +709,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""\
 Config file locations (applied in order, later overrides earlier):
-  /etc/{APP_NAME}/config.toml        system-wide  (set $EDIT_SYSCONFDIR to override /etc)
+  /etc/{APP_NAME}/config.toml        system-wide  (set $ZEDIT_SYSCONFDIR to override /etc)
   ~/.config/{APP_NAME}/config.toml   user-global
   ./.{APP_NAME}.toml                 project-local (CWD)
   FILE given to --config             ad-hoc override

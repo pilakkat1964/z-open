@@ -5,20 +5,20 @@ set -e
 case "$1" in
     purge)
         # Remove the config directory only on full purge
-        if [ -d /etc/edit ]; then
-            rm -rf /etc/edit
+        if [ -d /opt/etc/zedit ]; then
+            rm -rf /opt/etc/zedit
         fi
         ;;
     remove)
-        # Remove the 'ed' alias symlinks we may have created in postinst.
-        # Only remove if they still point to /usr/bin/edit (our binary).
-        for _dir in /usr/local/bin /opt/bin; do
-            _link="$_dir/ed"
+        # Remove the convenience symlinks we may have created.
+        # Only remove if they still point to our binary.
+        _zedit_bin=/opt/zedit/bin/zedit
+        for _link in /opt/bin/zedit /usr/local/bin/zedit; do
             if [ -L "$_link" ]; then
                 _target=$(readlink "$_link" 2>/dev/null || true)
-                if [ "$_target" = "/usr/bin/edit" ] || [ "$_target" = "edit" ]; then
+                if [ "$_target" = "$_zedit_bin" ]; then
                     rm -f "$_link"
-                    echo "edit: removed alias: $_link"
+                    echo "zedit: removed symlink: $_link"
                 fi
             fi
         done

@@ -1,11 +1,11 @@
 # edit — system-wide configuration
 #
-# This file is installed to /etc/edit/config.toml by the OS package.
+# This file is installed to /opt/etc/zedit/config.toml by the OS package.
 # It provides site-wide defaults that apply to all users.
 #
 # Individual users can override any setting in:
-#   ~/.config/edit/config.toml   (user-global)
-#   ./.edit.toml                 (project-local, CWD)
+#   ~/.config/zedit/config.toml   (user-global)
+#   ./.zedit.toml                 (project-local, CWD)
 #
 # Config is deep-merged: per-user and per-project files add to or override
 # entries here without removing those they don't mention.

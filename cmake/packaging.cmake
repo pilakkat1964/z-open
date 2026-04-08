@@ -27,8 +27,15 @@ set(CPACK_RESOURCE_FILE_README      "${CMAKE_SOURCE_DIR}/README.md")
 set(CPACK_PACKAGE_CONTACT           "Maintainer <maintainer@example.com>")
 set(CPACK_PACKAGE_VENDOR            "Example Project")
 
-# Install prefix used inside the package (standard for system tools)
-set(CPACK_PACKAGING_INSTALL_PREFIX  "/usr")
+# Install prefix used inside the package.  /opt/${PROJECT_NAME} follows FHS §8
+# for add-on application packages.
+set(CPACK_PACKAGING_INSTALL_PREFIX  "/opt/${PROJECT_NAME}")
+
+# Required so CPack stages files via DESTDIR into a temp directory instead of
+# writing to absolute paths on the live filesystem.  Files installed to paths
+# outside CMAKE_INSTALL_PREFIX (e.g. /opt/etc and /opt/bin) are handled via
+# install(CODE) blocks that prepend $ENV{DESTDIR} manually.
+set(CPACK_SET_DESTDIR ON)
 
 # Default generators — override on command line with -G if needed
 set(CPACK_GENERATOR "DEB;TGZ")
@@ -38,7 +45,7 @@ set(CPACK_GENERATOR "DEB;TGZ")
 set(CPACK_COMPONENTS_ALL Runtime Config Doc)
 
 # ── DEB-specific ──────────────────────────────────────────────────────────────
-set(CPACK_DEBIAN_PACKAGE_NAME           "edit")
+set(CPACK_DEBIAN_PACKAGE_NAME           "zedit")
 set(CPACK_DEBIAN_PACKAGE_SECTION        "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY       "optional")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE   "all")  # Python: architecture-independent
@@ -66,7 +73,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
     " The editor mapping is fully configurable through TOML files at the\n"
     " system, user, and project level.")
 
-# Generate a debian/postinst that creates /etc/edit if needed
+# Maintainer scripts: postinst ensures /opt/bin exists; postrm cleans up symlinks
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
     "${CMAKE_SOURCE_DIR}/debian/postinst"
     "${CMAKE_SOURCE_DIR}/debian/postrm")
@@ -75,7 +82,7 @@ set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 
 # ── RPM-specific ──────────────────────────────────────────────────────────────
-set(CPACK_RPM_PACKAGE_NAME          "edit")
+set(CPACK_RPM_PACKAGE_NAME          "zedit")
 set(CPACK_RPM_PACKAGE_GROUP         "Applications/Editors")
 set(CPACK_RPM_PACKAGE_LICENSE       "MIT")
 set(CPACK_RPM_PACKAGE_REQUIRES      "python3 >= 3.11")

@@ -29,3 +29,5 @@ cmake_install.cmake
 CPackConfig.cmake
 CPackSourceConfig.cmake
 install_manifest.txt
+*.deb
+*.tar.gz
