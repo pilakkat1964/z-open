@@ -26,7 +26,7 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y cmake python3-magic
+          sudo apt-get install -y cmake python3-magic dpkg-dev
 
       - name: Extract version from tag
         id: version
@@ -40,7 +40,12 @@ jobs:
           cmake --build build --target tarball
           ls build/zopen-*.tar.gz
 
-      - name: Build source archive (TGZ)
+      - name: Build Debian package (DEB)
+        run: |
+          cmake --build build --target deb
+          ls build/zopen-*.deb
+
+      - name: Build source archive
         run: |
           git archive --format=tar.gz \
             --prefix="zopen-${{ steps.version.outputs.VERSION }}-source/" \
@@ -51,8 +56,10 @@ jobs:
         id: assets
         run: |
           INSTALL_TGZ=$(ls build/zopen-*.tar.gz)
+          DEB=$(ls build/zopen-*.deb)
           SOURCE_TGZ="zopen-${{ steps.version.outputs.VERSION }}-source.tar.gz"
           echo "INSTALL_TGZ=${INSTALL_TGZ}" >> "$GITHUB_OUTPUT"
+          echo "DEB=${DEB}"                 >> "$GITHUB_OUTPUT"
           echo "SOURCE_TGZ=${SOURCE_TGZ}"   >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
@@ -62,4 +69,5 @@ jobs:
           generate_release_notes: true
           files: |
             ${{ steps.assets.outputs.INSTALL_TGZ }}
+            ${{ steps.assets.outputs.DEB }}
             ${{ steps.assets.outputs.SOURCE_TGZ }}
