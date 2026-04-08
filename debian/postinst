@@ -10,23 +10,23 @@ case "$1" in
             mkdir -p /opt/bin
         fi
 
-        # Attempt to create a 'ze' alias inside the package bin dir.
-        # /opt/zedit/bin is not managed by any system package, so no
+        # Attempt to create a 'zo' alias inside the package bin dir.
+        # /opt/zopen/bin is not managed by any system package, so no
         # Breaks/Replaces stanza is needed.
-        _edit_bin=/opt/zedit/bin/zedit
+        _edit_bin=/opt/zopen/bin/zopen
         _created=0
-        for _dir in /opt/zedit/bin; do
+        for _dir in /opt/zopen/bin; do
             if [ ! -d "$_dir" ]; then
                 continue
             fi
-            _link="$_dir/ze"
+            _link="$_dir/zo"
             if [ -e "$_link" ] || [ -L "$_link" ]; then
                 _target=$(readlink "$_link" 2>/dev/null || true)
-                if [ "$_target" = "$_edit_bin" ] || [ "$_target" = "zedit" ]; then
+                if [ "$_target" = "$_edit_bin" ] || [ "$_target" = "zopen" ]; then
                     _created=1
                     break
                 else
-                    echo "zedit: note: '$_link' already exists (→ ${_target:-regular file}); skipping alias in $_dir" >&2
+                    echo "zopen: note: '$_link' already exists (→ ${_target:-regular file}); skipping alias in $_dir" >&2
                     continue
                 fi
             fi
@@ -34,18 +34,18 @@ case "$1" in
             # Shadowing check: warn if the system 'ed' is higher in PATH
             _sys_ed=$(command -v ed 2>/dev/null || true)
             if [ -n "$_sys_ed" ] && [ "$_sys_ed" != "$_link" ]; then
-                echo "zedit: note: '$_sys_ed' exists; '$_link' may be shadowed if $_sys_ed's directory is earlier in PATH" >&2
+                echo "zopen: note: '$_sys_ed' exists; '$_link' may be shadowed if $_sys_ed's directory is earlier in PATH" >&2
             fi
 
-            ln -sf zedit "$_link"
-            echo "zedit: created alias: $_link → zedit"
+            ln -sf zopen "$_link"
+            echo "zopen: created alias: $_link → zopen"
             _created=1
             break
         done
 
         if [ "$_created" = "0" ]; then
-            echo "zedit: could not create 'ze' alias automatically." >&2
-            echo "zedit: run 'zedit --install-alias' as the target user to create it." >&2
+            echo "zopen: could not create 'zo' alias automatically." >&2
+            echo "zopen: run 'zopen --install-alias' as the target user to create it." >&2
         fi
         ;;
 esac

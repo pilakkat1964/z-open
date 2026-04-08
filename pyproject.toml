@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zedit"
+name = "zopen"
 version = "0.1.0"
 description = "Smart file editor launcher — opens files in the right editor based on MIME type or extension"
 readme = "README.md"
@@ -18,8 +18,8 @@ dependencies = []
 magic = ["python-magic"]
 
 [project.scripts]
-zedit = "zedit:main"
-ze    = "zedit:main"
+zopen = "zopen:main"
+zo    = "zopen:main"
 
 [tool.setuptools]
-py-modules = ["zedit"]
+py-modules = ["zopen"]

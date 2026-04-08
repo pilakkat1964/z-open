@@ -5,20 +5,20 @@ set -e
 case "$1" in
     purge)
         # Remove the config directory only on full purge
-        if [ -d /opt/etc/zedit ]; then
-            rm -rf /opt/etc/zedit
+        if [ -d /opt/etc/zopen ]; then
+            rm -rf /opt/etc/zopen
         fi
         ;;
     remove)
         # Remove the convenience symlinks we may have created.
         # Only remove if they still point to our binary.
-        _zedit_bin=/opt/zedit/bin/zedit
-        for _link in /opt/bin/zedit /usr/local/bin/zedit; do
+        _zedit_bin=/opt/zopen/bin/zopen
+        for _link in /opt/bin/zopen /usr/local/bin/zopen; do
             if [ -L "$_link" ]; then
                 _target=$(readlink "$_link" 2>/dev/null || true)
                 if [ "$_target" = "$_zedit_bin" ]; then
                     rm -f "$_link"
-                    echo "zedit: removed symlink: $_link"
+                    echo "zopen: removed symlink: $_link"
                 fi
             fi
         done

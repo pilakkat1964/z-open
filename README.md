@@ -1,18 +1,18 @@
-# zedit — smart file editor launcher
+# zopen — smart file editor launcher
 
-> **About this project:** `zedit` was designed and built to explore the power of
+> **About this project:** `zopen` was designed and built to explore the power of
 > AI-assisted development. The entire codebase was written primarily using
 > **Claude Sonnet 4.6** (the "medium" model) accessed through **GitHub Copilot**.
 
-`zedit` opens files in the right editor automatically. It detects each file's
+`zopen` opens files in the right editor automatically. It detects each file's
 MIME type (via **libmagic** or the `mimetypes` stdlib) and maps it to an editor
 through a layered TOML configuration — system-wide, per-user, and per-project.
 
 ```
-zedit main.py          → vim          (text/x-python mapping)
-zedit report.pdf       → evince       (application/pdf mapping)
-zedit image.png        → gimp         (image/png mapping)
-zedit README.md        → typora       (.md extension mapping)
+zopen main.py          → vim          (text/x-python mapping)
+zopen report.pdf       → evince       (application/pdf mapping)
+zopen image.png        → gimp         (image/png mapping)
+zopen README.md        → typora       (.md extension mapping)
 ```
 
 ---
@@ -25,11 +25,11 @@ pip install .                   # from source
 pip install ".[magic]"          # with accurate content-based MIME detection
 
 # Use
-zedit myfile.py                  # open with the configured editor
-ze myfile.py                    # same — 'ze' is a symlink/alias for 'zedit'
-zedit --dry-run *.md             # preview without opening
-zedit --list                     # show all configured mappings
-zedit --init-config              # scaffold ~/.config/zedit/config.toml
+zopen myfile.py                  # open with the configured editor
+ze myfile.py                    # same — 'ze' is a symlink/alias for 'zopen'
+zopen --dry-run *.md             # preview without opening
+zopen --list                     # show all configured mappings
+zopen --init-config              # scaffold ~/.config/zopen/config.toml
 ```
 
 ---
@@ -51,9 +51,9 @@ Config files are TOML, loaded and deep-merged in this order:
 | Priority | Location | Purpose |
 |---|---|---|
 | 1 | Built-in defaults | Always present |
-| 2 | `/etc/zedit/config.toml` | System-wide (installed by OS package) |
-| 3 | `~/.config/zedit/config.toml` | User-global |
-| 4 | `./.zedit.toml` in CWD | Project-local |
+| 2 | `/etc/zopen/config.toml` | System-wide (installed by OS package) |
+| 3 | `~/.config/zopen/config.toml` | User-global |
+| 4 | `./.zopen.toml` in CWD | Project-local |
 | 5 | `--config FILE` | Ad-hoc override |
 
 ```toml

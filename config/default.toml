@@ -1,11 +1,11 @@
-# zedit — system-wide configuration
-# Installed to /opt/etc/zedit/config.toml
+# zopen — system-wide configuration
+# Installed to /opt/etc/zopen/config.toml
 #
 # Generated for Ubuntu 24.04 LTS (Noble Numbat).
 # Default applications follow the Ubuntu 24.04 default desktop suite.
 #
-# Override any entry per-user in:  ~/.config/zedit/config.toml
-# Override per-project in:         ./.zedit.toml
+# Override any entry per-user in:  ~/.config/zopen/config.toml
+# Override per-project in:         ./.zopen.toml
 #
 # Editor values:
 #   Plain command:  "evince", "libreoffice --writer", "code --wait"

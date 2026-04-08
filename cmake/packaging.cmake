@@ -45,7 +45,7 @@ set(CPACK_GENERATOR "DEB;TGZ")
 set(CPACK_COMPONENTS_ALL Runtime Config Doc)
 
 # ── DEB-specific ──────────────────────────────────────────────────────────────
-set(CPACK_DEBIAN_PACKAGE_NAME           "zedit")
+set(CPACK_DEBIAN_PACKAGE_NAME           "zopen")
 set(CPACK_DEBIAN_PACKAGE_SECTION        "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY       "optional")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE   "all")  # Python: architecture-independent
@@ -82,7 +82,7 @@ set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 
 # ── RPM-specific ──────────────────────────────────────────────────────────────
-set(CPACK_RPM_PACKAGE_NAME          "zedit")
+set(CPACK_RPM_PACKAGE_NAME          "zopen")
 set(CPACK_RPM_PACKAGE_GROUP         "Applications/Editors")
 set(CPACK_RPM_PACKAGE_LICENSE       "MIT")
 set(CPACK_RPM_PACKAGE_REQUIRES      "python3 >= 3.11")

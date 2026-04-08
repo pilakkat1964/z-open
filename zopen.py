@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-edit - Smart file editor launcher
+zopen - Smart file opener
 
 Invokes the appropriate editor based on MIME type (auto-detected or
 explicitly specified) or file extension. The MIME type takes precedence
@@ -8,9 +8,9 @@ over the extension when both would match unless overridden by config.
 
 Configuration is loaded from (in order, later entries override earlier):
   1. Built-in defaults
-  2. /etc/zedit/config.toml        (system-wide config, path via $ZEDIT_SYSCONFDIR)
-  3. ~/.config/zedit/config.toml   (user global config)
-  4. ./.zedit.toml                 (project-local config, overrides global)
+  2. /etc/zopen/config.toml        (system-wide config, path via $ZOPEN_SYSCONFDIR)
+  3. ~/.config/zopen/config.toml   (user global config)
+  4. ./.zopen.toml                 (project-local config, overrides global)
   5. --config FILE                (ad-hoc override on the command line)
 
 Use --install-alias to create an 'ed' shortcut in a non-conflicting location.
@@ -50,12 +50,12 @@ except ImportError:
 # Constants
 # ---------------------------------------------------------------------------
 
-APP_NAME = "zedit"
+APP_NAME = "zopen"
 
 # Candidate directories for the 'ed' symlink alias, tried in order.
 # These are all user-accessible or local-admin locations that do not
 # overlap with distro-managed paths such as /usr/bin.
-_ALIAS_NAME = "ze"
+_ALIAS_NAME = "zo"
 _ALIAS_CANDIDATES: list[Path] = [
     Path.home() / ".local" / "bin",  # XDG user bin (pip --user default)
     Path("/opt/bin"),                  # site-local optional programs
@@ -121,18 +121,18 @@ prefer_mime = true
 ".sql"  = "$EDITOR"
 """
 
-# System-level config installed to /opt/etc/zedit/config.toml.
+# System-level config installed to /opt/etc/zopen/config.toml.
 # Maps common file types to the standard Ubuntu 24.04 LTS desktop applications.
-# Users override individual entries in ~/.config/zedit/config.toml.
+# Users override individual entries in ~/.config/zopen/config.toml.
 _SYSTEM_CONFIG_TOML = """\
-# zedit — system-wide configuration
-# Installed to /opt/etc/zedit/config.toml
+# zopen — system-wide configuration
+# Installed to /opt/etc/zopen/config.toml
 #
 # Generated for Ubuntu 24.04 LTS (Noble Numbat).
 # Default applications follow the Ubuntu 24.04 default desktop suite.
 #
-# Override any entry per-user in:  ~/.config/zedit/config.toml
-# Override per-project in:         ./.zedit.toml
+# Override any entry per-user in:  ~/.config/zopen/config.toml
+# Override per-project in:         ./.zopen.toml
 #
 # Editor values:
 #   Plain command:  "evince", "libreoffice --writer", "code --wait"
@@ -519,7 +519,7 @@ def generate_user_config_content() -> str:
 
     # Build TOML manually so we can add per-section comments
     lines: list[str] = [
-        "# zedit — user configuration",
+        "# zopen — user configuration",
         f"# Auto-generated on {now} from OS MIME defaults (xdg-mime).",
         "#",
         "# Text/code files are intentionally left as \"$EDITOR\" so your",
@@ -719,11 +719,11 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 def _system_config_path() -> Path:
     """Return the system-wide config path.
 
-    The directory can be overridden at install time via the ``ZEDIT_SYSCONFDIR``
+    The directory can be overridden at install time via the ``ZOPEN_SYSCONFDIR``
     environment variable (used by staged/packaged installs to point at the
     correct prefix before the final install step completes).
     """
-    sysconfdir = os.environ.get("ZEDIT_SYSCONFDIR", "/etc")
+    sysconfdir = os.environ.get("ZOPEN_SYSCONFDIR", "/etc")
     return Path(sysconfdir) / APP_NAME / "config.toml"
 
 
@@ -737,9 +737,9 @@ def load_config_layers(extra_config: Path | None = None) -> list[ConfigLayer]:
 
     Layers (each overrides the previous):
       1. Built-in defaults
-      2. System-wide config  ($ZEDIT_SYSCONFDIR/zedit/config.toml)
-      3. User-global config  (~/.config/zedit/config.toml)
-      4. Project-local       (./.zedit.toml in CWD)
+      2. System-wide config  ($ZOPEN_SYSCONFDIR/zopen/config.toml)
+      3. User-global config  (~/.config/zopen/config.toml)
+      4. Project-local       (./.zopen.toml in CWD)
       5. --config FILE       (ad-hoc override)
     """
     layers: list[ConfigLayer] = [
@@ -1014,7 +1014,7 @@ def write_system_config(path: Path, *, force: bool = False) -> int:
         print(
             f"✗ Cannot write to {target_dir} — permission denied.\n"
             f"  Re-run with sudo:\n"
-            f"    sudo zedit --init-config --force",
+            f"    sudo zopen --init-config --force",
             file=sys.stderr,
         )
         return 2
@@ -1028,7 +1028,7 @@ def write_system_config(path: Path, *, force: bool = False) -> int:
         print(
             f"✗ Permission denied writing to {path}.\n"
             f"  Re-run with sudo:\n"
-            f"    sudo zedit --init-config --force",
+            f"    sudo zopen --init-config --force",
             file=sys.stderr,
         )
         return 2
@@ -1155,7 +1155,7 @@ def cmd_choose_editor(
 # ---------------------------------------------------------------------------
 
 def _find_self() -> Path | None:
-    """Locate the installed 'zedit' executable."""
+    """Locate the installed 'zopen' executable."""
     found = shutil.which(APP_NAME)
     if found:
         return Path(found)
@@ -1287,7 +1287,7 @@ def cmd_map_editor(
     Detects the MIME type and extension of *file_path*, shows the current
     effective mapping (from the merged config stack), then prompts the user
     for a new editor value.  The result is written to the user config file
-    (``~/.config/zedit/config.toml``) only — lower-priority layers are not
+    (``~/.config/zopen/config.toml``) only — lower-priority layers are not
     touched.
     """
     # --- Detect ---
@@ -1432,7 +1432,7 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""\
 Config file locations (applied in order, later overrides earlier):
-  /etc/{APP_NAME}/config.toml        system-wide  (set $ZEDIT_SYSCONFDIR to override /etc)
+  /etc/{APP_NAME}/config.toml        system-wide  (set $ZOPEN_SYSCONFDIR to override /etc)
   ~/.config/{APP_NAME}/config.toml   user-global
   ./.{APP_NAME}.toml                 project-local (CWD)
   FILE given to --config             ad-hoc override

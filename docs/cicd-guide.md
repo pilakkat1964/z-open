@@ -1,4 +1,4 @@
-# zedit — CI/CD & Release Guide
+# zopen — CI/CD & Release Guide
 
 > **Audience:** This guide is written for contributors and maintainers who are
 > new to GitHub Actions and the GitHub release workflow.  No prior CI/CD
@@ -10,7 +10,7 @@
 
 1. [What is CI/CD?](#1-what-is-cicd)
 2. [Key concepts](#2-key-concepts)
-3. [How zedit's release pipeline works](#3-how-zedits-release-pipeline-works)
+3. [How zopen's release pipeline works](#3-how-zedits-release-pipeline-works)
 4. [Step-by-step: publishing a new release](#4-step-by-step-publishing-a-new-release)
 5. [What happens on GitHub automatically](#5-what-happens-on-github-automatically)
 6. [The release assets explained](#6-the-release-assets-explained)
@@ -56,7 +56,7 @@ time you push a tag.
 
 ---
 
-## 3. How zedit's release pipeline works
+## 3. How zopen's release pipeline works
 
 ### Workflow file location
 
@@ -102,14 +102,14 @@ GitHub Actions starts a fresh Ubuntu VM
         │
         ├─ Step 5: Configure build  (cmake -B build)
         │
-        ├─ Step 6: Build install archive  → zedit-0.5.0-Linux.tar.gz
+        ├─ Step 6: Build install archive  → zopen-0.5.0-Linux.tar.gz
         │
-        ├─ Step 7: Build source archive   → zedit-0.5.0-source.tar.gz
+        ├─ Step 7: Build source archive   → zopen-0.5.0-source.tar.gz
         │
         ├─ Step 8: Resolve asset filenames
         │
         └─ Step 9: Create GitHub Release
-                   • Title: "zedit v0.5.0"
+                   • Title: "zopen v0.5.0"
                    • Auto-generated changelog
                    • Attaches both .tar.gz files as downloadable assets
 ```
@@ -133,7 +133,7 @@ This is the minimum permission required; no other GitHub resources are touched.
 ### Prerequisites
 
 - Git installed and configured on your machine.
-- You have push access to `proteus-cpi/zedit`.
+- You have push access to `proteus-cpi/zopen`.
 - The `gh` CLI is installed (optional — only needed if you want to create a
   release locally without pushing a tag).
 
@@ -142,7 +142,7 @@ This is the minimum permission required; no other GitHub resources are touched.
 Open `CMakeLists.txt` and bump the `VERSION` field:
 
 ```cmake
-project(zedit
+project(zopen
     VERSION      0.6.0   # ← change this
     ...
 )
@@ -178,13 +178,13 @@ to trigger the entire release pipeline.
 Monitor progress at:
 
 ```
-https://github.com/proteus-cpi/zedit/actions
+https://github.com/proteus-cpi/zopen/actions
 ```
 
 When the workflow succeeds, the release is published automatically at:
 
 ```
-https://github.com/proteus-cpi/zedit/releases/tag/v0.6.0
+https://github.com/proteus-cpi/zopen/releases/tag/v0.6.0
 ```
 
 ---
@@ -206,7 +206,7 @@ Once the tag is pushed GitHub Actions:
 
 5. **Runs CPack** (via the `tarball` CMake target) to create the install
    archive.  CPack stages files into a temporary directory under
-   `/opt/zedit/...` without touching the runner's real filesystem.
+   `/opt/zopen/...` without touching the runner's real filesystem.
 
 6. **Runs `git archive`** to produce a clean source tarball — this contains
    only the files tracked by Git (no build artefacts, no editor swap files).
@@ -214,7 +214,7 @@ Once the tag is pushed GitHub Actions:
 7. **Creates the GitHub Release** using the
    [`softprops/action-gh-release`](https://github.com/softprops/action-gh-release)
    action, which:
-   - Sets the release title to `zedit vX.Y.Z`
+   - Sets the release title to `zopen vX.Y.Z`
    - Auto-generates a changelog from commit messages since the previous tag
    - Uploads both `.tar.gz` files as release assets
 
@@ -224,35 +224,35 @@ Once the tag is pushed GitHub Actions:
 
 Each release ships two archives:
 
-### `zedit-X.Y.Z-Linux.tar.gz` — Install archive
+### `zopen-X.Y.Z-Linux.tar.gz` — Install archive
 
 This is the **ready-to-use binary distribution**.  It contains the full
-directory tree that gets installed under `/opt/zedit`, pre-laid-out so you can
+directory tree that gets installed under `/opt/zopen`, pre-laid-out so you can
 extract it directly to `/`:
 
 ```
 opt/
-└── zedit/
+└── zopen/
     ├── bin/
-    │   └── zedit          ← main executable
+    │   └── zopen          ← main executable
     ├── share/
-    │   └── doc/zedit/     ← documentation
-    └── etc/zedit/         ← default config
+    │   └── doc/zopen/     ← documentation
+    └── etc/zopen/         ← default config
 ```
 
 **To install:**
 
 ```bash
-sudo tar -xzf zedit-0.5.0-Linux.tar.gz -C /
+sudo tar -xzf zopen-0.5.0-Linux.tar.gz -C /
 ```
 
 **To uninstall:**
 
 ```bash
-sudo rm -rf /opt/zedit
+sudo rm -rf /opt/zopen
 ```
 
-### `zedit-X.Y.Z-source.tar.gz` — Source archive
+### `zopen-X.Y.Z-source.tar.gz` — Source archive
 
 This is a **clean snapshot of the source code** at the tagged commit.  It is
 equivalent to what you would get from `git clone`, minus the `.git` history.
@@ -262,9 +262,9 @@ platform, or audit the release.
 **To build from source:**
 
 ```bash
-tar -xzf zedit-0.5.0-source.tar.gz
-cd zedit-0.5.0-source/
-cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zedit
+tar -xzf zopen-0.5.0-source.tar.gz
+cd zopen-0.5.0-source/
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen
 cmake --build build --target tarball   # or: --target deb
 ```
 
@@ -272,7 +272,7 @@ cmake --build build --target tarball   # or: --target deb
 
 ## 7. Monitoring a running workflow
 
-1. Go to **https://github.com/proteus-cpi/zedit/actions**
+1. Go to **https://github.com/proteus-cpi/zopen/actions**
 2. Click the workflow run that appeared after you pushed the tag.
 3. Click any step to expand its log output in real time.
 4. A green tick (✓) means the step passed; a red cross (✗) means it failed.
@@ -330,26 +330,26 @@ tag.  This is useful for testing packaging changes before publishing.
 
 ```bash
 # Configure
-cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zedit
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen
 
 # Build install archive
 cmake --build build --target tarball
-# → build/zedit-X.Y.Z-Linux.tar.gz
+# → build/zopen-X.Y.Z-Linux.tar.gz
 
 # Build source archive
 VERSION=$(grep -m1 'VERSION' CMakeLists.txt | awk '{print $2}')
 git archive --format=tar.gz \
-  --prefix="zedit-${VERSION}-source/" \
-  -o "zedit-${VERSION}-source.tar.gz" \
+  --prefix="zopen-${VERSION}-source/" \
+  -o "zopen-${VERSION}-source.tar.gz" \
   HEAD
-# → zedit-X.Y.Z-source.tar.gz
+# → zopen-X.Y.Z-source.tar.gz
 
 # Optionally create a GitHub release manually (requires gh CLI)
 gh release create vX.Y.Z \
-  --title "zedit vX.Y.Z" \
+  --title "zopen vX.Y.Z" \
   --notes "Release notes here" \
-  build/zedit-X.Y.Z-Linux.tar.gz \
-  zedit-X.Y.Z-source.tar.gz
+  build/zopen-X.Y.Z-Linux.tar.gz \
+  zopen-X.Y.Z-source.tar.gz
 ```
 
 > **Tip:** Always prefer the automated CI path for official releases.  Local

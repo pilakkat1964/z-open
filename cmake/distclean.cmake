@@ -10,7 +10,7 @@
 #   * The build directory is removed via a freshly-spawned cmake -E rm process
 #     whose CWD is SOURCE_DIR.  This avoids the Linux restriction that prevents
 #     deleting a directory while it is the CWD of any running process.
-#   * The GLOB for archives is intentionally narrow (zedit-* prefix) to avoid
+#   * The GLOB for archives is intentionally narrow (zopen-* prefix) to avoid
 #     accidentally deleting unrelated files in the source root.
 #
 # Variables expected from the caller (set via -D on the cmake -P command line):
@@ -26,7 +26,7 @@ endif()
 # nested directories that share a name (the GLOB_RECURSE version is unsafe).
 foreach(_rel
     __pycache__
-    zedit.egg-info
+    zopen.egg-info
     edit.egg-info
     .eggs
     dist
@@ -39,11 +39,11 @@ foreach(_rel
 endforeach()
 
 # ── Loose package archives in the source root ─────────────────────────────────
-# Narrow glob: only files whose name starts with "zedit-" and ends with
+# Narrow glob: only files whose name starts with "zopen-" and ends with
 # .tar.gz or .deb, sitting directly in the source root (not recursive).
 file(GLOB _archives
-    "${SOURCE_DIR}/zedit-*.tar.gz"
-    "${SOURCE_DIR}/zedit-*.deb"
+    "${SOURCE_DIR}/zopen-*.tar.gz"
+    "${SOURCE_DIR}/zopen-*.deb"
 )
 foreach(_f ${_archives})
     if(NOT IS_DIRECTORY "${_f}")
