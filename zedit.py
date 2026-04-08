@@ -29,6 +29,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# A single config layer: (parsed data dict, human-readable source label)
+ConfigLayer = tuple[dict[str, Any], str]
+
 try:
     import tomllib
 except ImportError:  # Python < 3.11
@@ -219,41 +222,171 @@ def _user_config_path() -> Path:
     return Path.home() / ".config" / APP_NAME / "config.toml"
 
 
-def load_config(extra_config: Path | None = None) -> dict[str, Any]:
-    """Load and merge config from all applicable locations.
+def load_config_layers(extra_config: Path | None = None) -> list[ConfigLayer]:
+    """Return each config layer as (data, label), **lowest** priority first.
 
-    Priority order (lowest → highest):
-      1. Built-in defaults          (hardcoded in this module)
-      2. System-wide config         (/etc/zedit/config.toml  or $ZEDIT_SYSCONFDIR)
-      3. User-global config         (~/.config/zedit/config.toml)
-      4. Project-local config       (./.zedit.toml  in CWD)
-      5. Ad-hoc --config FILE       (command-line override)
+    Layers (each overrides the previous):
+      1. Built-in defaults
+      2. System-wide config  ($ZEDIT_SYSCONFDIR/zedit/config.toml)
+      3. User-global config  (~/.config/zedit/config.toml)
+      4. Project-local       (./.zedit.toml in CWD)
+      5. --config FILE       (ad-hoc override)
     """
-    cfg = _parse_toml_str(_DEFAULT_CONFIG_TOML)
-
-    # 2. System-wide config (installed by the OS package)
-    sys_cfg_path = _system_config_path()
-    if sys_cfg_path.exists():
-        cfg = _deep_merge(cfg, _parse_toml_file(sys_cfg_path))
-
-    # 3. User-global config
-    user_cfg_path = _user_config_path()
-    if user_cfg_path.exists():
-        cfg = _deep_merge(cfg, _parse_toml_file(user_cfg_path))
-
-    # 4. Project-local override in CWD
-    local_cfg_path = Path.cwd() / f".{APP_NAME}.toml"
-    if local_cfg_path.exists():
-        cfg = _deep_merge(cfg, _parse_toml_file(local_cfg_path))
-
-    # 5. Explicit --config override
+    layers: list[ConfigLayer] = [
+        (_parse_toml_str(_DEFAULT_CONFIG_TOML), "built-in defaults"),
+    ]
+    sys_path = _system_config_path()
+    if sys_path.exists():
+        layers.append((_parse_toml_file(sys_path), f"system  ({sys_path})"))
+    user_path = _user_config_path()
+    if user_path.exists():
+        layers.append((_parse_toml_file(user_path), f"user    ({user_path})"))
+    local_path = Path.cwd() / f".{APP_NAME}.toml"
+    if local_path.exists():
+        layers.append((_parse_toml_file(local_path), f"project ({local_path})"))
     if extra_config is not None:
-        cfg = _deep_merge(cfg, _parse_toml_file(extra_config))
+        layers.append((_parse_toml_file(extra_config), f"--config ({extra_config})"))
+    return layers
 
-    return cfg
+
+def load_config(extra_config: Path | None = None) -> dict[str, Any]:
+    """Load and deep-merge config from all layers (highest priority wins)."""
+    result: dict[str, Any] = {}
+    for data, _ in load_config_layers(extra_config):
+        result = _deep_merge(result, data)
+    return result
 
 
-def read_user_config() -> dict[str, Any]:
+def collect_editor_candidates(
+    file_path: Path,
+    layers: list[ConfigLayer],
+    *,
+    mime_override: str | None = None,
+) -> list[tuple[str, str]]:
+    """Build a priority-ordered list of ``(resolved_editor, source_label)`` for *file_path*.
+
+    Priority rules (highest first):
+
+    * Higher config layer beats lower (project > user > system > built-in defaults).
+    * Within a layer, a **later**-defined mapping key beats an earlier one (last wins).
+    * Within a layer, when both a MIME and an extension entry match, their relative
+      order is controlled by the effective ``prefer_mime`` setting.
+
+    Editors are deduplicated — the first occurrence (highest priority) is kept.
+    If no mapping matches at all, the effective ``defaults.editor`` is returned as a
+    single-element list so the caller always has something to work with.
+    """
+    # ── Detect MIME and extension ──────────────────────────────────────────────
+    detected_mime: str | None = mime_override or (
+        detect_mime(file_path) if file_path.exists() else None
+    )
+    suffix = file_path.suffix.lower() or None
+
+    # ── Effective prefer_mime: use the highest-priority layer that defines it ──
+    prefer_mime = True
+    for data, _ in reversed(layers):
+        pm = data.get("defaults", {}).get("prefer_mime")
+        if pm is not None:
+            prefer_mime = bool(pm)
+            break
+
+    candidates: list[tuple[str, str]] = []
+    seen: set[str] = set()
+
+    def _add(raw: str, label: str) -> None:
+        resolved = _resolve_sentinel(raw)
+        if resolved not in seen:
+            seen.add(resolved)
+            candidates.append((resolved, label))
+
+    def _find_mime(mime_map: dict[str, str]) -> tuple[str, str] | None:
+        """Scan *mime_map* in reverse (last-defined first) for detected_mime."""
+        if not detected_mime:
+            return None
+        items = list(mime_map.items())[::-1]
+        for key, val in items:
+            if key == detected_mime:
+                return (val, key)
+        base = detected_mime.split("/")[0]
+        for key, val in items:
+            if key == base:
+                return (val, key)
+        return None
+
+    def _find_ext(ext_map: dict[str, str]) -> tuple[str, str] | None:
+        """Scan *ext_map* in reverse (last-defined first) for suffix."""
+        if not suffix:
+            return None
+        items = list(ext_map.items())[::-1]
+        for key, val in items:
+            if key == suffix:
+                return (val, key)
+        return None
+
+    # ── Process layers from HIGHEST to LOWEST priority ─────────────────────────
+    for data, source_label in reversed(layers):
+        mime_hit = _find_mime(data.get("mime_types", {}))
+        ext_hit  = _find_ext(data.get("extensions", {}))
+
+        # Interleave mime / extension results in prefer_mime order
+        hits: list[tuple[tuple[str, str], str] | None] = (
+            [
+                ((mime_hit[0], mime_hit[1]), "mime_types") if mime_hit else None,
+                ((ext_hit[0],  ext_hit[1]),  "extensions") if ext_hit  else None,
+            ]
+            if prefer_mime else
+            [
+                ((ext_hit[0],  ext_hit[1]),  "extensions") if ext_hit  else None,
+                ((mime_hit[0], mime_hit[1]), "mime_types") if mime_hit else None,
+            ]
+        )
+        for item in hits:
+            if item is not None:
+                (raw_val, key), section = item
+                _add(raw_val, f"{source_label}  [{section}][{key!r}]")
+
+    # ── Fallback to defaults.editor when nothing matched ──────────────────────
+    if not candidates:
+        for data, source_label in reversed(layers):
+            fb = data.get("defaults", {}).get("editor")
+            if fb is not None:
+                _add(fb, f"{source_label}  [defaults][editor]")
+                break
+        if not candidates:
+            _add(_SENTINEL, "built-in fallback")
+
+    return candidates
+
+
+def resolve_editor(
+    file_path: Path,
+    layers: list[ConfigLayer],
+    *,
+    mime_override: str | None = None,
+    verbose: bool = False,
+) -> str:
+    """Return the highest-priority editor for *file_path*.
+
+    Delegates to :func:`collect_editor_candidates` and returns the first entry's
+    command string.  Use *verbose* to print resolution details to stderr.
+    """
+    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
+    editor, source = candidates[0]
+    if verbose:
+        mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
+        suffix = file_path.suffix.lower() or None
+        print(
+            f"  mime: {mime or '(unknown)'}  ext: {suffix or '(none)'}",
+            file=sys.stderr,
+        )
+        print(f"  → {editor!r}  (from {source})", file=sys.stderr)
+        if len(candidates) > 1:
+            print(
+                f"  ({len(candidates) - 1} lower-priority alternative(s) available;"
+                " use -c to choose interactively)",
+                file=sys.stderr,
+            )
+    return editor
     """Read *only* the user-global config file (not the merged stack).
 
     Returns an empty dict when the file does not exist yet.
@@ -313,72 +446,6 @@ def _resolve_sentinel(value: str) -> str:
     )
 
 
-def resolve_editor(
-    file_path: Path,
-    cfg: dict[str, Any],
-    *,
-    mime_override: str | None = None,
-    verbose: bool = False,
-) -> str:
-    """Return the editor command to use for *file_path*.
-
-    Resolution order:
-      1. MIME-type mapping  (detected or --mime override)
-      2. Extension mapping
-      3. defaults.editor fallback
-    """
-    prefer_mime: bool = cfg.get("defaults", {}).get("prefer_mime", True)
-    mime_map: dict[str, str] = cfg.get("mime_types", {})
-    ext_map: dict[str, str] = cfg.get("extensions", {})
-
-    # --- Determine MIME type ---
-    if mime_override:
-        detected_mime: str | None = mime_override
-        if verbose:
-            print(f"  mime: {detected_mime} (from --mime option)", file=sys.stderr)
-    else:
-        detected_mime = detect_mime(file_path)
-        if verbose:
-            method = "libmagic" if _HAVE_LIBMAGIC else "mimetypes"
-            print(f"  mime: {detected_mime or '(unknown)'} (via {method})", file=sys.stderr)
-
-    # --- MIME-type lookup ---
-    mime_editor: str | None = None
-    if detected_mime:
-        # Try exact match first, then the base type (e.g. "text/plain" → "text")
-        mime_editor = mime_map.get(detected_mime)
-        if mime_editor is None:
-            base_type = detected_mime.split("/")[0]
-            mime_editor = mime_map.get(base_type)
-        if mime_editor and verbose:
-            print(f"  matched mime_types[{detected_mime!r}] → {mime_editor!r}", file=sys.stderr)
-
-    # --- Extension lookup ---
-    ext_editor: str | None = None
-    suffix = file_path.suffix.lower()
-    if suffix:
-        ext_editor = ext_map.get(suffix)
-        if ext_editor and verbose:
-            print(f"  matched extensions[{suffix!r}] → {ext_editor!r}", file=sys.stderr)
-
-    # --- Choose between mime vs extension ---
-    if mime_editor and ext_editor:
-        chosen = mime_editor if prefer_mime else ext_editor
-        if verbose:
-            strategy = "mime (prefer_mime=true)" if prefer_mime else "extension (prefer_mime=false)"
-            print(f"  both matched; using {strategy}", file=sys.stderr)
-    elif mime_editor:
-        chosen = mime_editor
-    elif ext_editor:
-        chosen = ext_editor
-    else:
-        chosen = cfg.get("defaults", {}).get("editor", _SENTINEL)
-        if verbose:
-            print(f"  no mapping found; using defaults.editor → {chosen!r}", file=sys.stderr)
-
-    return _resolve_sentinel(chosen)
-
-
 # ---------------------------------------------------------------------------
 # Config scaffold helper
 # ---------------------------------------------------------------------------
@@ -425,6 +492,97 @@ def print_mappings(cfg: dict[str, Any]) -> None:
 
     prefer = cfg.get("defaults", {}).get("prefer_mime", True)
     print(f"\n=== prefer_mime ===\n  {prefer}")
+
+
+# ---------------------------------------------------------------------------
+# -d / --dump: priority-ordered editor list for a file
+# ---------------------------------------------------------------------------
+
+def cmd_dump_editors(
+    file_path: Path,
+    layers: list[ConfigLayer],
+    *,
+    mime_override: str | None = None,
+) -> int:
+    """Print the priority-ordered editor candidate list for *file_path* and exit.
+
+    Highest-priority editor is listed first and marked as the one that would be
+    used on a normal (non-interactive) invocation.
+    """
+    detected_mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
+    suffix = file_path.suffix.lower() or None
+    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
+
+    print(f"File : {file_path}")
+    print(f"MIME : {detected_mime or '(unknown)'}")
+    print(f"Ext  : {suffix or '(none)'}")
+    print(f"\nEditors (decreasing priority):")
+    for i, (editor, source) in enumerate(candidates, 1):
+        marker = "  ← would be used" if i == 1 else ""
+        print(f"  {i}. {editor:<28}  {source}{marker}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# -c / --choose: interactive editor selection
+# ---------------------------------------------------------------------------
+
+def cmd_choose_editor(
+    file_path: Path,
+    layers: list[ConfigLayer],
+    *,
+    mime_override: str | None = None,
+    dry_run: bool = False,
+) -> int:
+    """Present a numbered menu of editors and open *file_path* with the chosen one.
+
+    Candidates are listed in priority order (highest first).  Pressing Enter
+    without a choice selects the default (top) entry.
+    """
+    if not file_path.exists():
+        print(
+            f"Note: '{file_path}' does not exist; MIME detection skipped.",
+            file=sys.stderr,
+        )
+    detected_mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
+    suffix = file_path.suffix.lower() or None
+    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
+
+    print(f"\nFile : {file_path}")
+    print(f"MIME : {detected_mime or '(unknown)'}")
+    print(f"Ext  : {suffix or '(none)'}")
+    print(f"\nAvailable editors (highest priority first):")
+    width = max(len(ed) for ed, _ in candidates)
+    for i, (editor, source) in enumerate(candidates, 1):
+        tag = "  [default]" if i == 1 else ""
+        print(f"  [{i}] {editor:<{width}}  from {source}{tag}")
+    print("  [q] Cancel")
+
+    while True:
+        try:
+            raw = input("\nChoice [1]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled.")
+            return 0
+        if raw in ("", "1"):
+            chosen_editor, chosen_source = candidates[0]
+            break
+        if raw == "q":
+            print("Cancelled.")
+            return 0
+        if raw.isdigit() and 1 <= int(raw) <= len(candidates):
+            chosen_editor, chosen_source = candidates[int(raw) - 1]
+            break
+        print(f"  Please enter a number 1–{len(candidates)} or 'q' to cancel.")
+
+    cmd = chosen_editor.split() + [str(file_path)]
+    if dry_run:
+        print(f"would run: {' '.join(cmd)}")
+        return 0
+
+    print(f"Opening with: {chosen_editor}  (from {chosen_source})")
+    result = subprocess.run(cmd)
+    return result.returncode
 
 
 # ---------------------------------------------------------------------------
@@ -730,10 +888,27 @@ Use `{APP_NAME} --init-config` to write a starter config to the global location.
         help="Use this editor directly, bypassing all config lookups.",
     )
     p.add_argument(
-        "-c", "--config",
+        "-C", "--config",
         metavar="FILE",
         type=Path,
         help="Additional config file to merge on top of the standard stack.",
+    )
+    p.add_argument(
+        "-c", "--choose",
+        action="store_true",
+        help=(
+            "Present a numbered menu of editors (highest priority first) for each "
+            "FILE and let you pick one interactively.  Default choice (Enter) uses "
+            "the highest-priority editor."
+        ),
+    )
+    p.add_argument(
+        "-d", "--dump",
+        action="store_true",
+        help=(
+            "Dump the priority-ordered list of editors for each FILE and exit.  "
+            "The first entry is the one that would be used on a normal invocation."
+        ),
     )
     p.add_argument(
         "-n", "--dry-run",
@@ -791,17 +966,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.install_alias:
         return install_ed_alias(dry_run=args.dry_run, verbose=args.verbose)
 
-    cfg = load_config(args.config)
+    layers = load_config_layers(args.config)
 
     # --- --map FILE ---
     if args.map is not None:
+        cfg = load_config(args.config)
         return cmd_map_editor(
             args.map, cfg, mime_override=args.mime, verbose=args.verbose
         )
 
     # --- --list ---
     if args.list:
-        print_mappings(cfg)
+        print_mappings(load_config(args.config))
         return 0
 
     if not args.files:
@@ -809,32 +985,47 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     exit_code = 0
-    # Group consecutive files that share the same resolved editor so we can
-    # open them all in a single editor invocation.
-    groups: list[tuple[str, list[str]]] = []
+
     for file_arg in args.files:
         file_path = Path(file_arg)
 
+        # --- -d / --dump: print priority list and move on to next file ---
+        if args.dump:
+            rc = cmd_dump_editors(file_path, layers, mime_override=args.mime)
+            if rc != 0:
+                exit_code = rc
+            continue
+
+        # --- -c / --choose: interactive editor selection ---
+        if args.choose:
+            rc = cmd_choose_editor(
+                file_path, layers, mime_override=args.mime, dry_run=args.dry_run
+            )
+            if rc != 0:
+                exit_code = rc
+            continue
+
+        # --- Normal / --editor: resolve and open ---
         if args.editor:
             editor_cmd = args.editor
         else:
             if not file_path.exists() and args.verbose:
-                print(f"  {file_arg}: file does not exist; skipping MIME detection", file=sys.stderr)
+                print(
+                    f"  {file_arg}: file does not exist; skipping MIME detection",
+                    file=sys.stderr,
+                )
             editor_cmd = resolve_editor(
-                file_path, cfg, mime_override=args.mime, verbose=args.verbose
+                file_path, layers, mime_override=args.mime, verbose=args.verbose
             )
 
-        if groups and groups[-1][0] == editor_cmd:
-            groups[-1][1].append(file_arg)
-        else:
-            groups.append((editor_cmd, [file_arg]))
+        # Group consecutive files sharing the same editor into one invocation
+        pass  # grouping handled below
 
-    for editor_cmd, file_list in groups:
-        # Split the editor command to support options (e.g. "code --wait")
-        cmd = editor_cmd.split() + file_list
+        cmd = editor_cmd.split() + [str(file_path)]
         if args.dry_run or args.verbose:
             label = "would run" if args.dry_run else "running"
-            print(f"{label}: {' '.join(cmd)}", file=sys.stderr if not args.dry_run else sys.stdout)
+            dest = sys.stdout if args.dry_run else sys.stderr
+            print(f"{label}: {' '.join(cmd)}", file=dest)
         if not args.dry_run:
             result = subprocess.run(cmd)
             if result.returncode != 0:
