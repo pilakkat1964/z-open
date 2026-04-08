@@ -1021,7 +1021,7 @@ def print_mappings(cfg: dict[str, Any]) -> None:
     """Pretty-print the resolved application mappings."""
     def _res(v: str) -> str:
         r = _resolve_sentinel(v)
-        return r if v != _SENTINEL else f"{r}  ($EDITOR sentinel)"
+        return r if v != _SENTINEL else f"{r}  (via $EDITOR env var)"
 
     print("=== MIME-type mappings ===")
     for k, v in sorted(cfg.get("mime_types", {}).items()):
