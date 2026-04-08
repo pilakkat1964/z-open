@@ -446,41 +446,122 @@ def _query_xdg_default(mime_type: str) -> str | None:
         return None
 
 
+def _query_all_xdg_apps(mime_type: str) -> tuple[str | None, list[str]]:
+    """Return *(default_cmd, all_cmds)* for *mime_type* via ``gio mime``.
+
+    *all_cmds* is ordered: the platform default application first, then every
+    other registered application in the order ``gio`` reports them.  Entries
+    that resolve to the same command string are deduplicated.
+
+    Returns *(None, [])* when ``gio`` is unavailable or finds nothing.
+    """
+    try:
+        result = subprocess.run(
+            ["gio", "mime", mime_type],
+            capture_output=True, text=True, timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None, []
+
+    if result.returncode != 0:
+        return None, []
+
+    default_desktop: str | None = None
+    all_desktops: list[str] = []
+    in_list = False
+
+    for line in result.stdout.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        m = re.match(r"Default application for .+:\s+(\S+\.desktop)", stripped)
+        if m:
+            default_desktop = m.group(1)
+            continue
+        if re.match(r"(Registered|Recommended) applications:", stripped):
+            in_list = True
+            continue
+        if in_list and stripped.endswith(".desktop"):
+            all_desktops.append(stripped)
+
+    default_cmd = _desktop_to_cmd(default_desktop) if default_desktop else None
+
+    seen: set[str] = set()
+    all_cmds: list[str] = []
+
+    if default_cmd:
+        all_cmds.append(default_cmd)
+        seen.add(default_cmd)
+
+    for desktop in all_desktops:
+        if desktop == default_desktop:
+            continue
+        cmd = _desktop_to_cmd(desktop)
+        if cmd and cmd not in seen:
+            all_cmds.append(cmd)
+            seen.add(cmd)
+
+    return default_cmd, all_cmds
+
+
 def generate_user_config_content() -> str:
     """Build a user config TOML by querying the OS for its default handlers.
 
-    For each MIME type in *_XDG_PROBE_MIMES* the function calls xdg-mime to
-    find the installed default application and resolves the .desktop Exec line
-    to a usable command string.  Text and source-code types stay as ``$EDITOR``
-    so the user's terminal editor preference is preserved.
+    For each MIME type in *_XDG_PROBE_MIMES* the function calls ``gio mime``
+    (falling back to ``xdg-mime``) to discover the installed default
+    application *and* every other registered application.  The platform
+    default is written as the active mapping; all alternatives are written
+    as commented-out lines immediately below, so the user can switch by
+    uncommenting a single line.
 
-    Falls back to the static Ubuntu 24.04 defaults when xdg-mime is unavailable
-    or returns no result.
+    Text and source-code types stay as ``$EDITOR`` so the user's terminal
+    editor preference is preserved.
     """
     import datetime
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    # Probe OS defaults
-    resolved_mimes: dict[str, str] = {}   # mime → command
-    resolved_exts: dict[str, str]  = {}   # ext  → command
+    # mime → (default_cmd, [all_cmds ordered: default first, then alternatives])
+    resolved_mimes: dict[str, tuple[str, list[str]]] = {}
+    # ext  → same tuple (inherited from primary MIME, first probe wins)
+    resolved_exts: dict[str, tuple[str, list[str]]] = {}
 
     for mime, fallback, exts in _XDG_PROBE_MIMES:
-        cmd = _query_xdg_default(mime) or fallback
-        resolved_mimes[mime] = cmd
+        default_cmd, all_cmds = _query_all_xdg_apps(mime)
+        if not default_cmd:
+            # Fall back to xdg-mime or static default
+            default_cmd = _query_xdg_default(mime) or fallback
+            all_cmds = [default_cmd]
+        resolved_mimes[mime] = (default_cmd, all_cmds)
         for ext in exts:
-            # Extension uses the command resolved for its primary MIME type,
-            # but only if the same MIME's resolution hasn't already assigned
-            # a different command to this extension (first probe wins).
             if ext not in resolved_exts:
-                resolved_exts[ext] = cmd
+                resolved_exts[ext] = (default_cmd, all_cmds)
+
+    def _fmt_mime(k: str) -> str:
+        escaped = k.replace('"', '\\"')
+        return f'"{escaped}"'
+
+    def _esc(cmd: str) -> str:
+        return cmd.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _mime_lines(key: str, default_cmd: str, all_cmds: list[str],
+                    width: int = 60) -> list[str]:
+        """Emit one active line + commented alternatives for a MIME/ext key."""
+        out = [f"{_fmt_mime(key):<{width}} = \"{_esc(default_cmd)}\""]
+        for alt in all_cmds[1:]:
+            out.append(f"# {_fmt_mime(key):<{width - 2}} = \"{_esc(alt)}\"  # alternative")
+        return out
 
     # Build TOML manually so we can add per-section comments
     lines: list[str] = [
         "# zopen — user configuration",
-        f"# Auto-generated on {now} from OS MIME defaults (xdg-mime).",
+        f"# Auto-generated on {now} from OS MIME defaults (gio/xdg-mime).",
         "#",
         "# Text/code files are intentionally left as \"$EDITOR\" so your",
         "# preferred terminal editor ($VISUAL / $EDITOR env vars) is used.",
+        "#",
+        "# When the platform has multiple registered apps for a type, the",
+        "# platform default is active; alternatives appear as commented lines.",
+        "# Uncomment an alternative (and comment out the active line) to switch.",
         "#",
         "# Override any entry or add new ones below.  Changes are never",
         "# overwritten automatically (use --init-config --force to regenerate).",
@@ -511,7 +592,7 @@ def generate_user_config_content() -> str:
         '"application/toml"              = "$EDITOR"',
         '"application/x-yaml"            = "$EDITOR"',
         "",
-        "# ── OS-detected defaults ────────────────────────────────────────────",
+        "# ── OS-detected defaults (alternatives shown as comments) ───────────",
     ]
 
     # Group probed MIME entries by category (comment headers)
@@ -545,17 +626,12 @@ def generate_user_config_content() -> str:
          ["application/epub+zip","application/x-mobipocket-ebook"]),
     ]
 
-    def _fmt_mime(k: str) -> str:
-        escaped = k.replace('"', '\\"')
-        return f'"{escaped}"'
-
     for cat_name, mimes in categories:
         lines.append(f"# {cat_name}")
         for m in mimes:
             if m in resolved_mimes:
-                cmd = resolved_mimes[m]
-                escaped_cmd = cmd.replace("\\", "\\\\").replace('"', '\\"')
-                lines.append(f"{_fmt_mime(m):<60} = \"{escaped_cmd}\"")
+                default_cmd, all_cmds = resolved_mimes[m]
+                lines.extend(_mime_lines(m, default_cmd, all_cmds, width=60))
         lines.append("")
 
     # Extension mappings
@@ -584,12 +660,10 @@ def generate_user_config_content() -> str:
         lines.append(f"# {cat_name}")
         for ext in exts:
             if ext in resolved_exts:
-                cmd = resolved_exts[ext]
+                default_cmd, all_cmds = resolved_exts[ext]
+                lines.extend(_mime_lines(ext, default_cmd, all_cmds, width=10))
             else:
-                # Text/code stays as $EDITOR
-                cmd = "$EDITOR"
-            escaped_cmd = cmd.replace("\\", "\\\\").replace('"', '\\"')
-            lines.append(f"{_fmt_mime(ext):<10} = \"{escaped_cmd}\"")
+                lines.append(f"{_fmt_mime(ext):<10} = \"$EDITOR\"")
         lines.append("")
 
     return "\n".join(lines) + "\n"
