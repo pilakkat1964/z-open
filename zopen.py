@@ -2,9 +2,9 @@
 """
 zopen - Smart file opener
 
-Invokes the appropriate editor based on MIME type (auto-detected or
-explicitly specified) or file extension. The MIME type takes precedence
-over the extension when both would match unless overridden by config.
+Opens files using the appropriate application based on MIME type (auto-detected or
+explicitly specified) or file extension. The MIME type takes precedence over the
+extension when both would match, unless overridden by config.
 
 Configuration is loaded from (in order, later entries override earlier):
   1. Built-in defaults
@@ -13,8 +13,9 @@ Configuration is loaded from (in order, later entries override earlier):
   4. ./.zopen.toml                 (project-local config, overrides global)
   5. --config FILE                (ad-hoc override on the command line)
 
-Use --install-alias to create an 'ed' shortcut in a non-conflicting location.
-Use --map FILE to interactively update the MIME/extension → editor mapping.
+Falls back to xdg-open when no explicit mapping matches.
+Use --install-alias to create a 'zo' shortcut in a non-conflicting location.
+Use --map FILE to interactively update the MIME/extension → application mapping.
 """
 
 from __future__ import annotations
@@ -66,59 +67,13 @@ _ALIAS_CANDIDATES: list[Path] = [
 # Values are intentionally minimal so that $VISUAL / $EDITOR take over when
 # no explicit mapping has been configured.
 # Built-in defaults used when no config file is found at all.
-# These are minimal — they defer all choices to the $EDITOR environment
-# variable.  The real rich defaults live in _SYSTEM_CONFIG_TOML below.
+# Minimal: just set the fallback to xdg-open so any file type is handled by
+# the platform's own association database.  Rich per-type overrides live in
+# _SYSTEM_CONFIG_TOML (installed to /opt/etc/zopen/config.toml).
 _DEFAULT_CONFIG_TOML = """\
 [defaults]
-editor = "$EDITOR"
+app = "xdg-open"
 prefer_mime = true
-
-[mime_types]
-"text/plain"            = "$EDITOR"
-"text/x-python"         = "$EDITOR"
-"text/x-script.python"  = "$EDITOR"
-"text/html"             = "$EDITOR"
-"text/css"              = "$EDITOR"
-"text/javascript"       = "$EDITOR"
-"text/x-shellscript"    = "$EDITOR"
-"text/x-sh"             = "$EDITOR"
-"application/json"      = "$EDITOR"
-"application/xml"       = "$EDITOR"
-"application/toml"      = "$EDITOR"
-
-[extensions]
-".py"   = "$EDITOR"
-".pyi"  = "$EDITOR"
-".js"   = "$EDITOR"
-".ts"   = "$EDITOR"
-".jsx"  = "$EDITOR"
-".tsx"  = "$EDITOR"
-".html" = "$EDITOR"
-".htm"  = "$EDITOR"
-".css"  = "$EDITOR"
-".scss" = "$EDITOR"
-".json" = "$EDITOR"
-".xml"  = "$EDITOR"
-".yaml" = "$EDITOR"
-".yml"  = "$EDITOR"
-".toml" = "$EDITOR"
-".txt"  = "$EDITOR"
-".md"   = "$EDITOR"
-".rst"  = "$EDITOR"
-".sh"   = "$EDITOR"
-".bash" = "$EDITOR"
-".zsh"  = "$EDITOR"
-".fish" = "$EDITOR"
-".c"    = "$EDITOR"
-".h"    = "$EDITOR"
-".cpp"  = "$EDITOR"
-".hpp"  = "$EDITOR"
-".rs"   = "$EDITOR"
-".go"   = "$EDITOR"
-".java" = "$EDITOR"
-".rb"   = "$EDITOR"
-".php"  = "$EDITOR"
-".sql"  = "$EDITOR"
 """
 
 # System-level config installed to /opt/etc/zopen/config.toml.
@@ -134,16 +89,18 @@ _SYSTEM_CONFIG_TOML = """\
 # Override any entry per-user in:  ~/.config/zopen/config.toml
 # Override per-project in:         ./.zopen.toml
 #
-# Editor values:
-#   Plain command:  "evince", "libreoffice --writer", "code --wait"
-#   Sentinel:       "$EDITOR"  →  resolved via $VISUAL → $EDITOR → vi
+# App values:
+#   Plain command:  "evince", "libreoffice --writer", "code"
+#   Sentinel:       "$EDITOR"   →  resolved via $VISUAL → $EDITOR → vi
+#   Fallback:       "xdg-open"  →  delegate to the platform association database
 
 [defaults]
-editor      = "$EDITOR"
+app         = "xdg-open"
 prefer_mime = true
 
 # ── Text & source code ───────────────────────────────────────────────────────
-# All plain-text and code files open in the user's preferred terminal editor.
+# Text and code files are opened in the user's preferred terminal editor.
+# Remove or override these entries to use a GUI editor instead.
 [mime_types]
 "text/plain"                    = "$EDITOR"
 "text/x-python"                 = "$EDITOR"
@@ -494,8 +451,8 @@ def generate_user_config_content() -> str:
 
     For each MIME type in *_XDG_PROBE_MIMES* the function calls xdg-mime to
     find the installed default application and resolves the .desktop Exec line
-    to a usable command string.  Text and source-code types always stay as
-    ``$EDITOR`` so the user's terminal editor preference is preserved.
+    to a usable command string.  Text and source-code types stay as ``$EDITOR``
+    so the user's terminal editor preference is preserved.
 
     Falls back to the static Ubuntu 24.04 defaults when xdg-mime is unavailable
     or returns no result.
@@ -529,7 +486,7 @@ def generate_user_config_content() -> str:
         "# overwritten automatically (use --init-config --force to regenerate).",
         "",
         "[defaults]",
-        'editor      = "$EDITOR"',
+        'app         = "xdg-open"',
         "prefer_mime = true",
         "",
         "# ── Text & source code (" + '"$EDITOR" = defer to $VISUAL/$EDITOR/vi) ─',
@@ -744,6 +701,7 @@ def load_config_layers(extra_config: Path | None = None) -> list[ConfigLayer]:
     """
     layers: list[ConfigLayer] = [
         (_parse_toml_str(_DEFAULT_CONFIG_TOML), "built-in defaults"),
+        (_parse_toml_str(_SYSTEM_CONFIG_TOML),  "built-in system"),
     ]
     sys_path = _system_config_path()
     if sys_path.exists():
@@ -767,13 +725,13 @@ def load_config(extra_config: Path | None = None) -> dict[str, Any]:
     return result
 
 
-def collect_editor_candidates(
+def collect_app_candidates(
     file_path: Path,
     layers: list[ConfigLayer],
     *,
     mime_override: str | None = None,
 ) -> list[tuple[str, str]]:
-    """Build a priority-ordered list of ``(resolved_editor, source_label)`` for *file_path*.
+    """Build a priority-ordered list of ``(resolved_command, source_label)`` for *file_path*.
 
     Priority rules (highest first):
 
@@ -782,9 +740,11 @@ def collect_editor_candidates(
     * Within a layer, when both a MIME and an extension entry match, their relative
       order is controlled by the effective ``prefer_mime`` setting.
 
-    Editors are deduplicated — the first occurrence (highest priority) is kept.
-    If no mapping matches at all, the effective ``defaults.editor`` is returned as a
-    single-element list so the caller always has something to work with.
+    When no config entry matches:
+    1. The platform's ``xdg-mime query default`` result is tried (desktop association).
+    2. ``xdg-open`` is used as the universal catch-all fallback.
+
+    Commands are deduplicated — the first occurrence (highest priority) is kept.
     """
     # ── Detect MIME and extension ──────────────────────────────────────────────
     detected_mime: str | None = mime_override or (
@@ -855,33 +815,45 @@ def collect_editor_candidates(
                 (raw_val, key), section = item
                 _add(raw_val, f"{source_label}  [{section}][{key!r}]")
 
-    # ── Fallback to defaults.editor when nothing matched ──────────────────────
+    # ── When config has no match, add platform defaults ────────────────────────
     if not candidates:
+        # 1. defaults.app / defaults.editor from the highest layer that has one
         for data, source_label in reversed(layers):
-            fb = data.get("defaults", {}).get("editor")
-            if fb is not None:
-                _add(fb, f"{source_label}  [defaults][editor]")
+            fb = data.get("defaults", {}).get("app") or data.get("defaults", {}).get("editor")
+            if fb is not None and fb not in ("xdg-open",):
+                _add(fb, f"{source_label}  [defaults][app]")
                 break
-        if not candidates:
-            _add(_SENTINEL, "built-in fallback")
+
+        # 2. Platform association via xdg-mime (reflects the desktop's own default)
+        if detected_mime:
+            xdg_cmd = _query_xdg_default(detected_mime)
+            if xdg_cmd:
+                _add(xdg_cmd, f"xdg-mime default  ({detected_mime})")
+
+        # 3. xdg-open — universal catch-all: delegates to the OS at runtime
+        _add("xdg-open", "xdg-open (platform fallback)")
 
     return candidates
 
 
-def resolve_editor(
+# Backward-compatible alias
+collect_editor_candidates = collect_app_candidates
+
+
+def resolve_app(
     file_path: Path,
     layers: list[ConfigLayer],
     *,
     mime_override: str | None = None,
     verbose: bool = False,
 ) -> str:
-    """Return the highest-priority editor for *file_path*.
+    """Return the highest-priority application command for *file_path*.
 
-    Delegates to :func:`collect_editor_candidates` and returns the first entry's
+    Delegates to :func:`collect_app_candidates` and returns the first entry's
     command string.  Use *verbose* to print resolution details to stderr.
     """
-    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
-    editor, source = candidates[0]
+    candidates = collect_app_candidates(file_path, layers, mime_override=mime_override)
+    app_cmd, source = candidates[0]
     if verbose:
         mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
         suffix = file_path.suffix.lower() or None
@@ -889,14 +861,21 @@ def resolve_editor(
             f"  mime: {mime or '(unknown)'}  ext: {suffix or '(none)'}",
             file=sys.stderr,
         )
-        print(f"  → {editor!r}  (from {source})", file=sys.stderr)
+        print(f"  → {app_cmd!r}  (from {source})", file=sys.stderr)
         if len(candidates) > 1:
             print(
                 f"  ({len(candidates) - 1} lower-priority alternative(s) available;"
                 " use -c to choose interactively)",
                 file=sys.stderr,
             )
-    return editor
+    return app_cmd
+
+
+# Backward-compatible alias
+resolve_editor = resolve_app
+
+
+def read_user_config() -> dict[str, Any]:
     """Read *only* the user-global config file (not the merged stack).
 
     Returns an empty dict when the file does not exist yet.
@@ -913,9 +892,9 @@ def save_user_config(data: dict[str, Any]) -> None:
     p = _user_config_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     header = (
-        "# edit user configuration\n"
-        "# Written by 'edit --map'.  Manual edits are welcome.\n"
-        f"# See 'edit --list' for the full resolved mapping.\n"
+        "# zopen user configuration\n"
+        "# Written by 'zopen --map'.  Manual edits are welcome.\n"
+        f"# See 'zopen --list' for the full resolved mapping.\n"
     )
     p.write_text(_dict_to_toml(data, header=header))
 
@@ -946,7 +925,7 @@ _SENTINEL = "$EDITOR"
 
 
 def _resolve_sentinel(value: str) -> str:
-    """Replace the ``$EDITOR`` sentinel with the environment-supplied editor."""
+    """Replace the ``$EDITOR`` sentinel with the environment-supplied editor command."""
     if value != _SENTINEL:
         return value
     return (
@@ -1039,7 +1018,7 @@ def write_system_config(path: Path, *, force: bool = False) -> int:
 # ---------------------------------------------------------------------------
 
 def print_mappings(cfg: dict[str, Any]) -> None:
-    """Pretty-print the resolved editor mappings."""
+    """Pretty-print the resolved application mappings."""
     def _res(v: str) -> str:
         r = _resolve_sentinel(v)
         return r if v != _SENTINEL else f"{r}  ($EDITOR sentinel)"
@@ -1052,8 +1031,8 @@ def print_mappings(cfg: dict[str, Any]) -> None:
     for k, v in sorted(cfg.get("extensions", {}).items()):
         print(f"  {k:<15} → {_res(v)}")
 
-    fallback = cfg.get("defaults", {}).get("editor", _SENTINEL)
-    print(f"\n=== Fallback editor ===\n  {_res(fallback)}")
+    fallback = cfg.get("defaults", {}).get("app") or cfg.get("defaults", {}).get("editor") or "xdg-open"
+    print(f"\n=== Default application ===\n  {_res(fallback)}")
 
     prefer = cfg.get("defaults", {}).get("prefer_mime", True)
     print(f"\n=== prefer_mime ===\n  {prefer}")
@@ -1063,43 +1042,47 @@ def print_mappings(cfg: dict[str, Any]) -> None:
 # -d / --dump: priority-ordered editor list for a file
 # ---------------------------------------------------------------------------
 
-def cmd_dump_editors(
+def cmd_dump_apps(
     file_path: Path,
     layers: list[ConfigLayer],
     *,
     mime_override: str | None = None,
 ) -> int:
-    """Print the priority-ordered editor candidate list for *file_path* and exit.
+    """Print the priority-ordered application candidate list for *file_path* and exit.
 
-    Highest-priority editor is listed first and marked as the one that would be
+    Highest-priority application is listed first and marked as the one that would be
     used on a normal (non-interactive) invocation.
     """
     detected_mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
     suffix = file_path.suffix.lower() or None
-    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
+    candidates = collect_app_candidates(file_path, layers, mime_override=mime_override)
 
     print(f"File : {file_path}")
     print(f"MIME : {detected_mime or '(unknown)'}")
     print(f"Ext  : {suffix or '(none)'}")
-    print(f"\nEditors (decreasing priority):")
-    for i, (editor, source) in enumerate(candidates, 1):
+    print(f"\nApplications (decreasing priority):")
+    for i, (app_cmd, source) in enumerate(candidates, 1):
         marker = "  ← would be used" if i == 1 else ""
-        print(f"  {i}. {editor:<28}  {source}{marker}")
+        print(f"  {i}. {app_cmd:<28}  {source}{marker}")
     return 0
 
 
+# Backward-compatible alias
+cmd_dump_editors = cmd_dump_apps
+
+
 # ---------------------------------------------------------------------------
-# -c / --choose: interactive editor selection
+# -c / --choose: interactive application selection
 # ---------------------------------------------------------------------------
 
-def cmd_choose_editor(
+def cmd_choose_app(
     file_path: Path,
     layers: list[ConfigLayer],
     *,
     mime_override: str | None = None,
     dry_run: bool = False,
 ) -> int:
-    """Present a numbered menu of editors and open *file_path* with the chosen one.
+    """Present a numbered menu of applications and open *file_path* with the chosen one.
 
     Candidates are listed in priority order (highest first).  Pressing Enter
     without a choice selects the default (top) entry.
@@ -1111,16 +1094,16 @@ def cmd_choose_editor(
         )
     detected_mime = mime_override or (detect_mime(file_path) if file_path.exists() else None)
     suffix = file_path.suffix.lower() or None
-    candidates = collect_editor_candidates(file_path, layers, mime_override=mime_override)
+    candidates = collect_app_candidates(file_path, layers, mime_override=mime_override)
 
     print(f"\nFile : {file_path}")
     print(f"MIME : {detected_mime or '(unknown)'}")
     print(f"Ext  : {suffix or '(none)'}")
-    print(f"\nAvailable editors (highest priority first):")
-    width = max(len(ed) for ed, _ in candidates)
-    for i, (editor, source) in enumerate(candidates, 1):
+    print(f"\nAvailable applications (highest priority first):")
+    width = max(len(app_cmd) for app_cmd, _ in candidates)
+    for i, (app_cmd, source) in enumerate(candidates, 1):
         tag = "  [default]" if i == 1 else ""
-        print(f"  [{i}] {editor:<{width}}  from {source}{tag}")
+        print(f"  [{i}] {app_cmd:<{width}}  from {source}{tag}")
     print("  [q] Cancel")
 
     while True:
@@ -1130,24 +1113,28 @@ def cmd_choose_editor(
             print("\nCancelled.")
             return 0
         if raw in ("", "1"):
-            chosen_editor, chosen_source = candidates[0]
+            chosen_app, chosen_source = candidates[0]
             break
         if raw == "q":
             print("Cancelled.")
             return 0
         if raw.isdigit() and 1 <= int(raw) <= len(candidates):
-            chosen_editor, chosen_source = candidates[int(raw) - 1]
+            chosen_app, chosen_source = candidates[int(raw) - 1]
             break
         print(f"  Please enter a number 1–{len(candidates)} or 'q' to cancel.")
 
-    cmd = chosen_editor.split() + [str(file_path)]
+    cmd = chosen_app.split() + [str(file_path)]
     if dry_run:
         print(f"would run: {' '.join(cmd)}")
         return 0
 
-    print(f"Opening with: {chosen_editor}  (from {chosen_source})")
+    print(f"Opening with: {chosen_app}  (from {chosen_source})")
     result = subprocess.run(cmd)
     return result.returncode
+
+
+# Backward-compatible alias
+cmd_choose_editor = cmd_choose_app
 
 
 # ---------------------------------------------------------------------------
@@ -1275,18 +1262,18 @@ def install_ed_alias(
 # --map: interactive MIME / extension → editor mapping
 # ---------------------------------------------------------------------------
 
-def cmd_map_editor(
+def cmd_map_app(
     file_path: Path,
     cfg: dict[str, Any],
     *,
     mime_override: str | None = None,
     verbose: bool = False,
 ) -> int:
-    """Interactively update the MIME-type / extension → editor mapping.
+    """Interactively update the MIME-type / extension → application mapping.
 
     Detects the MIME type and extension of *file_path*, shows the current
     effective mapping (from the merged config stack), then prompts the user
-    for a new editor value.  The result is written to the user config file
+    for a new application value.  The result is written to the user config file
     (``~/.config/zopen/config.toml``) only — lower-priority layers are not
     touched.
     """
@@ -1318,7 +1305,7 @@ def cmd_map_editor(
     # --- Look up current effective mappings ---
     mime_map: dict[str, str] = cfg.get("mime_types", {})
     ext_map: dict[str, str] = cfg.get("extensions", {})
-    fallback = cfg.get("defaults", {}).get("editor", _SENTINEL)
+    fallback = cfg.get("defaults", {}).get("app") or cfg.get("defaults", {}).get("editor") or "xdg-open"
 
     def _eff(raw: str | None) -> str:
         if raw is None:
@@ -1326,19 +1313,19 @@ def cmd_map_editor(
         resolved = _resolve_sentinel(raw)
         return f"{resolved}  ($EDITOR)" if raw == _SENTINEL else resolved
 
-    cur_mime_editor: str | None = None
+    cur_mime_app: str | None = None
     if detected_mime:
-        cur_mime_editor = mime_map.get(detected_mime)
-        if cur_mime_editor is None:
-            cur_mime_editor = mime_map.get(detected_mime.split("/")[0])
+        cur_mime_app = mime_map.get(detected_mime)
+        if cur_mime_app is None:
+            cur_mime_app = mime_map.get(detected_mime.split("/")[0])
 
-    cur_ext_editor: str | None = ext_map.get(suffix) if suffix else None
+    cur_ext_app: str | None = ext_map.get(suffix) if suffix else None
 
     print("\nCurrent mappings (effective, from merged config):")
     if detected_mime:
-        print(f"  MIME  {detected_mime!r:<42}  →  {_eff(cur_mime_editor)}")
+        print(f"  MIME  {detected_mime!r:<42}  →  {_eff(cur_mime_app)}")
     if suffix:
-        print(f"  Ext   {suffix!r:<42}  →  {_eff(cur_ext_editor)}")
+        print(f"  Ext   {suffix!r:<42}  →  {_eff(cur_ext_app)}")
 
     # --- Build interactive menu ---
     options: list[tuple[str, str | None, str | None]] = []
@@ -1375,7 +1362,7 @@ def cmd_map_editor(
             break
         print(f"  Please enter a number 1–{len(options)} or 'q' to cancel.")
 
-    # --- Prompt for new editor value(s) ---
+    # --- Prompt for new application value(s) ---
     def _prompt(current_raw: str | None, kind: str, key: str) -> str | None:
         current_disp = (
             current_raw if current_raw is not None
@@ -1383,9 +1370,9 @@ def cmd_map_editor(
         )
         try:
             val = input(
-                f"\nNew editor for {kind} {key!r}\n"
+                f"\nNew application for {kind} {key!r}\n"
                 f"  current : {current_disp}\n"
-                f"  (Enter to keep current, '$EDITOR' to follow env var): "
+                f"  (Enter to keep current, '$EDITOR' to follow $EDITOR env var): "
             ).strip()
         except (EOFError, KeyboardInterrupt):
             return None
@@ -1396,14 +1383,14 @@ def cmd_map_editor(
     changed = False
 
     if chosen_mime is not None:
-        new_val = _prompt(cur_mime_editor, "MIME type", chosen_mime)
+        new_val = _prompt(cur_mime_app, "MIME type", chosen_mime)
         if new_val is not None:
             user_cfg.setdefault("mime_types", {})[chosen_mime] = new_val
             print(f"  mime_types[{chosen_mime!r}] = {new_val!r}")
             changed = True
 
     if chosen_ext is not None:
-        new_val = _prompt(cur_ext_editor, "extension", chosen_ext)
+        new_val = _prompt(cur_ext_app, "extension", chosen_ext)
         if new_val is not None:
             user_cfg.setdefault("extensions", {})[chosen_ext] = new_val
             print(f"  extensions[{chosen_ext!r}] = {new_val!r}")
@@ -1418,6 +1405,10 @@ def cmd_map_editor(
     return 0
 
 
+# Backward-compatible alias
+cmd_map_editor = cmd_map_app
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -1426,8 +1417,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog=APP_NAME,
         description=(
-            "Open file(s) in the appropriate editor determined by MIME type "
-            "or file extension according to a configurable TOML mapping."
+            "Open file(s) using the appropriate application determined by MIME type "
+            "or file extension according to a configurable TOML mapping.  "
+            "Falls back to the platform's xdg-open when no explicit mapping is found."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""\
@@ -1448,9 +1440,9 @@ Use `{APP_NAME} --init-config` to write a starter config to the global location.
         help="Override MIME-type detection (e.g. text/x-python).",
     )
     p.add_argument(
-        "-e", "--editor",
+        "-a", "--app",
         metavar="CMD",
-        help="Use this editor directly, bypassing all config lookups.",
+        help="Use this application directly, bypassing all config lookups.",
     )
     p.add_argument(
         "-C", "--config",
@@ -1462,28 +1454,28 @@ Use `{APP_NAME} --init-config` to write a starter config to the global location.
         "-c", "--choose",
         action="store_true",
         help=(
-            "Present a numbered menu of editors (highest priority first) for each "
+            "Present a numbered menu of applications (highest priority first) for each "
             "FILE and let you pick one interactively.  Default choice (Enter) uses "
-            "the highest-priority editor."
+            "the highest-priority application."
         ),
     )
     p.add_argument(
         "-d", "--dump",
         action="store_true",
         help=(
-            "Dump the priority-ordered list of editors for each FILE and exit.  "
+            "Dump the priority-ordered list of applications for each FILE and exit.  "
             "The first entry is the one that would be used on a normal invocation."
         ),
     )
     p.add_argument(
         "-n", "--dry-run",
         action="store_true",
-        help="Print the editor command that would be run, but don't launch it.",
+        help="Print the application command that would be run, but don't launch it.",
     )
     p.add_argument(
         "-l", "--list",
         action="store_true",
-        help="Print all configured editor mappings and exit.",
+        help="Print all configured application mappings and exit.",
     )
     p.add_argument(
         "--init-config",
@@ -1518,9 +1510,9 @@ Use `{APP_NAME} --init-config` to write a starter config to the global location.
         metavar="FILE",
         type=Path,
         help=(
-            "Interactively update the MIME-type / extension → editor mapping "
+            "Interactively update the MIME-type / extension → application mapping "
             "for FILE.  Detects the MIME type and extension, shows the current "
-            "mapping, and prompts for a new editor.  Saves to "
+            "mapping, and prompts for a new application command.  Saves to "
             f"~/.config/{APP_NAME}/config.toml."
         ),
     )
@@ -1558,7 +1550,7 @@ def main(argv: list[str] | None = None) -> int:
     # --- --map FILE ---
     if args.map is not None:
         cfg = load_config(args.config)
-        return cmd_map_editor(
+        return cmd_map_app(
             args.map, cfg, mime_override=args.mime, verbose=args.verbose
         )
 
@@ -1578,37 +1570,37 @@ def main(argv: list[str] | None = None) -> int:
 
         # --- -d / --dump: print priority list and move on to next file ---
         if args.dump:
-            rc = cmd_dump_editors(file_path, layers, mime_override=args.mime)
+            rc = cmd_dump_apps(file_path, layers, mime_override=args.mime)
             if rc != 0:
                 exit_code = rc
             continue
 
-        # --- -c / --choose: interactive editor selection ---
+        # --- -c / --choose: interactive application selection ---
         if args.choose:
-            rc = cmd_choose_editor(
+            rc = cmd_choose_app(
                 file_path, layers, mime_override=args.mime, dry_run=args.dry_run
             )
             if rc != 0:
                 exit_code = rc
             continue
 
-        # --- Normal / --editor: resolve and open ---
-        if args.editor:
-            editor_cmd = args.editor
+        # --- Normal / --app: resolve and open ---
+        if args.app:
+            app_cmd = args.app
         else:
             if not file_path.exists() and args.verbose:
                 print(
                     f"  {file_arg}: file does not exist; skipping MIME detection",
                     file=sys.stderr,
                 )
-            editor_cmd = resolve_editor(
+            app_cmd = resolve_app(
                 file_path, layers, mime_override=args.mime, verbose=args.verbose
             )
 
-        # Group consecutive files sharing the same editor into one invocation
+        # Group consecutive files sharing the same app into one invocation
         pass  # grouping handled below
 
-        cmd = editor_cmd.split() + [str(file_path)]
+        cmd = app_cmd.split() + [str(file_path)]
         if args.dry_run or args.verbose:
             label = "would run" if args.dry_run else "running"
             dest = sys.stdout if args.dry_run else sys.stderr
