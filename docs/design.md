@@ -1,6 +1,6 @@
-# edit — Design and Code Documentation
+# zedit — Design and Code Documentation
 
-This document describes the internal architecture of `edit`, the data
+This document describes the internal architecture of `zedit`, the data
 structures it uses, the responsibilities of every public function, and
 the points at which the behaviour can be extended.
 
@@ -35,7 +35,7 @@ the points at which the behaviour can be extended.
 
 ## 1. Overview
 
-`edit` is intentionally a **single Python module** (`edit.py`). The entire
+`zedit` is intentionally a **single Python module** (`zedit.py`). The entire
 application lives in one file to make it trivially deployable: copy the
 file, mark it executable, done. Packaging (wheel, deb, tarball) is layered
 on top but is not required to use the tool.
@@ -65,7 +65,7 @@ subprocess.run(editor + files)
 
 ## 2. Module structure
 
-`edit.py` is divided into clearly delimited sections, each introduced by a
+`zedit.py` is divided into clearly delimited sections, each introduced by a
 separator comment:
 
 | Section | Symbols | Purpose |
@@ -116,10 +116,10 @@ All other imports (`argparse`, `mimetypes`, `os`, `subprocess`, `sys`,
 
 ## 4. Constants and built-in defaults
 
-### `APP_NAME = "edit"`
+### `APP_NAME = "zedit"`
 
 The application's canonical name. Used to construct config paths
-(`~/.config/edit/`, `/etc/edit/`) and in help text. Changing this string is
+(`~/.config/zedit/`, `/opt/etc/zedit/`) and in help text. Changing this string is
 the only modification needed to fork the tool under a different name.
 
 ### `_DEFAULT_CONFIG_TOML: str`
@@ -174,13 +174,13 @@ _DEFAULT_CONFIG_TOML (str)
     base dict
         │  _deep_merge()
         ▼
-/etc/edit/config.toml  (if it exists)
+/opt/etc/zedit/config.toml  (if it exists)
         │  _deep_merge()
         ▼
-~/.config/edit/config.toml  (if it exists)
+~/.config/zedit/config.toml  (if it exists)
         │  _deep_merge()
         ▼
-./.edit.toml  (if it exists in CWD)
+./.zedit.toml  (if it exists in CWD)
         │  _deep_merge()
         ▼
 --config FILE  (if --config was passed)
@@ -229,7 +229,7 @@ config files from disk in priority order.
 #### `_system_config_path() -> Path`
 
 Returns the path to the system-wide config file. Respects the
-`EDIT_SYSCONFDIR` environment variable so that staged installs (e.g., during
+`ZEDIT_SYSCONFDIR` environment variable so that staged installs (e.g., during
 `dpkg-buildpackage` or `cmake --install DESTDIR=...`) point at the correct
 prefix.
 
@@ -365,7 +365,7 @@ def main(argv: list[str] | None = None) -> int
 unit tests without forking a subprocess:
 
 ```python
-from edit import main
+from zedit import main
 assert main(["--dry-run", "test.py"]) == 0
 ```
 
@@ -389,7 +389,7 @@ Files that map to the same editor are passed together in one invocation
 sequential invocations. The order of files on the command line is preserved.
 
 The "consecutive run" approach (rather than grouping all files by editor
-globally) preserves order semantics: `edit a.py README.md b.py` with `.py →
+globally) preserves order semantics: `zedit a.py README.md b.py` with `.py →
 vim` and `.md → typora` will launch `vim a.py`, then `typora README.md`,
 then `vim b.py` — not `vim a.py b.py` then `typora README.md`.
 
@@ -462,7 +462,7 @@ if xdg_path.exists():
     cfg = _deep_merge(cfg, _parse_toml_file(xdg_path))
 ```
 
-(The current implementation already uses `~/.config/edit/config.toml`, which
+(The current implementation already uses `~/.config/zedit/config.toml`, which
 is the standard XDG user config location.)
 
 ### Replacing the MIME detection backend
@@ -470,8 +470,8 @@ is the standard XDG user config location.)
 `detect_mime()` can be monkey-patched or subclassed in tests:
 
 ```python
-import edit
-edit.detect_mime = lambda path: "text/x-python"  # always return Python
+import zedit
+zedit.detect_mime = lambda path: "text/x-python"  # always return Python
 ```
 
 For a more robust extension, replace the module-level `_HAVE_LIBMAGIC` flag
@@ -488,7 +488,7 @@ structure is format-agnostic — only the parser needs to change.
 
 ### Single-file module
 
-**Decision:** everything in `edit.py`, no sub-package.  
+**Decision:** everything in `zedit.py`, no sub-package.  
 **Rationale:** the tool is small enough that the complexity of a package
 (`__init__.py`, `__main__.py`, relative imports) outweighs the benefit.
 A single file is trivially deployable and readable in one sitting.  
@@ -519,7 +519,7 @@ cannot be used in config editor values.
 
 **Decision:** higher-priority config files extend lower-priority ones
 key-by-key; they do not replace entire tables.  
-**Rationale:** system admins who set `/etc/edit/config.toml` typically want
+**Rationale:** system admins who set `/opt/etc/zedit/config.toml` typically want
 users to be able to add personal mappings, not just override the whole file.  
 **Trade-off:** there is no way to explicitly delete a lower-priority entry
 (only overwrite it with `"$EDITOR"` to neutralise it).

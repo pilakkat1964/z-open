@@ -1,6 +1,6 @@
-# edit — Build and Packaging Guide
+# zedit — Build and Packaging Guide
 
-This document covers every way to build, install, and package `edit`,
+This document covers every way to build, install, and package `zedit`,
 from a quick developer pip install through to a signed Debian source package.
 
 ---
@@ -45,14 +45,14 @@ from a quick developer pip install through to a signed Debian source package.
 ## 1. Repository layout
 
 ```
-edit/
-├── edit.py                  # Application source (single Python module)
+zedit/
+├── zedit.py                  # Application source (single Python module)
 ├── pyproject.toml           # Python packaging metadata (PEP 517/518/621)
 ├── CMakeLists.txt           # Top-level CMake configuration
 ├── cmake/
 │   └── packaging.cmake      # CPack configuration (included by CMakeLists.txt)
 ├── config/
-│   └── default.toml         # System-wide config installed to /etc/edit/
+│   └── default.toml         # System-wide config installed to /opt/etc/zedit/
 ├── debian/
 │   ├── changelog            # dpkg version history (required)
 │   ├── control              # Package metadata and dependencies
@@ -60,7 +60,7 @@ edit/
 │   ├── rules                # Build recipe (Makefile driven by dh)
 │   ├── source/
 │   │   └── format           # Source package format declaration
-│   ├── edit.docs            # List of documentation files for dh_installdocs
+│   ├── zedit.docs            # List of documentation files for dh_installdocs
 │   ├── postinst             # Post-install maintainer script
 │   └── postrm               # Post-remove maintainer script
 ├── docs/
@@ -144,13 +144,13 @@ python -m build
 Output files:
 ```
 dist/
-├── edit-0.1.0-py3-none-any.whl      # wheel
-└── edit-0.1.0.tar.gz                # source distribution
+├── zedit-0.5.0-py3-none-any.whl      # wheel
+└── zedit-0.5.0.tar.gz                # source distribution
 ```
 
 The wheel filename encodes:
-- `edit` — package name
-- `0.1.0` — version
+- `zedit` — package name
+- `0.5.0` — version
 - `py3` — Python 3 compatible
 - `none` — not ABI-specific (pure Python)
 - `any` — not platform-specific
@@ -159,10 +159,10 @@ The wheel filename encodes:
 
 ```bash
 # Install from the wheel file
-pip install dist/edit-0.1.0-py3-none-any.whl
+pip install dist/zedit-0.5.0-py3-none-any.whl
 
 # Install with the optional libmagic binding
-pip install "dist/edit-0.1.0-py3-none-any.whl[magic]"
+pip install "dist/zedit-0.5.0-py3-none-any.whl[magic]"
 
 # Install directly from source (builds wheel on the fly)
 pip install .
@@ -177,7 +177,7 @@ source .venv/bin/activate
 pip install .
 ```
 
-After installation, the `edit` command is available in the active
+After installation, the `zedit` command is available in the active
 environment's `bin/` directory.
 
 ### 3.3 Editable / developer install
@@ -197,7 +197,7 @@ requires      = ["setuptools>=68"]   # minimum version for pyproject.toml suppor
 build-backend = "setuptools.build_meta"
 
 [project]
-name            = "edit"
+name            = "zedit"
 version         = "0.1.0"
 description     = "Smart file editor launcher …"
 readme          = "README.md"        # shown on PyPI
@@ -210,18 +210,18 @@ dependencies    = []                 # no mandatory runtime deps
 magic = ["python-magic"]             # install with pip install ".[magic]"
 
 [project.scripts]
-edit = "edit:main"                   # creates bin/edit → calls edit.main()
+zedit = "zedit:main"                 # creates bin/zedit → calls zedit.main()
 
 [tool.setuptools]
-py-modules = ["edit"]                # only package the edit.py module
+py-modules = ["edit"]                # only package the zedit.py module
 ```
 
 Key points:
 
-- `py-modules = ["edit"]` tells setuptools to install only `edit.py`, not any
+- `py-modules = ["edit"]` tells setuptools to install only `zedit.py`, not any
   other `.py` files it might find in the directory.
 - `[project.scripts]` defines the console entry point. pip generates a
-  thin wrapper script at install time that calls `edit.main()`.
+  thin wrapper script at install time that calls `zedit.main()`.
 - `dependencies = []` — there are no mandatory runtime dependencies.
   `python-magic` is listed under `[project.optional-dependencies]`.
 
@@ -251,10 +251,10 @@ cmake -S . -B build
 # System install (Debian convention: binary under /usr, config under /etc)
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr
 
-# Custom prefix (e.g. /opt/edit)
+# Custom prefix (e.g. /opt/zedit)
 cmake -S . -B build \
-      -DCMAKE_INSTALL_PREFIX=/opt/edit \
-      -DEDIT_SYSCONFDIR=/opt/edit/etc
+      -DCMAKE_INSTALL_PREFIX=/opt/zedit \
+      -DZEDIT_SYSCONFDIR=/opt/zedit/etc
 
 # Skip building the wheel (faster if you only need cmake --install)
 cmake -S . -B build -DEDIT_BUILD_WHEEL=OFF
@@ -275,7 +275,7 @@ All options are set with `-D<OPTION>=<VALUE>` on the configure command line.
 | `CMAKE_INSTALL_PREFIX` | PATH | `/usr/local` | Root of the installation tree. Use `/usr` for system packages. |
 | `EDIT_BUILD_WHEEL` | BOOL | `ON` | Build a Python wheel as part of the `all` target. Requires `python -m build`. |
 | `EDIT_INSTALL_VIA_PIP` | BOOL | `OFF` | Install via `pip install --prefix` instead of copying the script directly. Creates `.dist-info` metadata. |
-| `EDIT_SYSCONFDIR` | PATH | `/etc` when prefix is `/usr`; `${prefix}/etc` otherwise | Directory that receives `edit/config.toml`. Override to place the config outside the prefix. |
+| `ZEDIT_SYSCONFDIR` | PATH | `/etc` when prefix is `/usr`; `${prefix}/etc` otherwise | Directory that receives `zedit/config.toml`. Override to place the config outside the prefix. |
 | `CMAKE_INSTALL_LIBDIR` | STRING | `lib` | Set automatically to the multiarch path by `dh`. Pre-set here to suppress a GNUInstallDirs warning on `LANGUAGES NONE` projects. |
 
 ### 4.4 CMake install-directory variables
@@ -287,8 +287,8 @@ they start with `/`.
 | Variable | Resolved path (prefix `/usr`) | Description |
 |---|---|---|
 | `CMAKE_INSTALL_BINDIR` | `/usr/bin` | Executables |
-| `CMAKE_INSTALL_SYSCONFDIR` | `/etc` (set by GNUInstallDirs when prefix = `/usr`) | System config; overridden by `EDIT_SYSCONFDIR` |
-| `CMAKE_INSTALL_DOCDIR` | `/usr/share/doc/edit` | Package documentation |
+| `CMAKE_INSTALL_SYSCONFDIR` | `/etc` (set by GNUInstallDirs when prefix = `/usr`) | System config; overridden by `ZEDIT_SYSCONFDIR` |
+| `CMAKE_INSTALL_DOCDIR` | `/usr/share/doc/zedit` | Package documentation |
 | `CMAKE_INSTALL_DATADIR` | `/usr/share` | Read-only architecture-independent data |
 
 ### 4.5 Build step
@@ -310,7 +310,7 @@ python3 -m build --wheel --no-isolation --outdir <build-dir>/dist
 
 It is driven by a `add_custom_command` with these declared dependencies:
 
-- `edit.py`
+- `zedit.py`
 - `pyproject.toml`
 
 CMake only rebuilds the wheel when one of these files changes (checked by
@@ -337,25 +337,25 @@ cmake --install build --component Doc
 **DESTDIR behaviour:** the install destination is
 `${DESTDIR}${CMAKE_INSTALL_PREFIX}/<relative-path>`. For example, with
 `DESTDIR=/tmp/staging` and prefix `/usr`, the binary lands at
-`/tmp/staging/usr/bin/edit`. The `EDIT_SYSCONFDIR` path (e.g. `/etc`) is
-always absolute, so config ends up at `/tmp/staging/etc/edit/config.toml`.
+`/tmp/staging/opt/zedit/bin/zedit`. The `ZEDIT_SYSCONFDIR` path (e.g. `/etc`) is
+always absolute, so config ends up at `/tmp/staging/opt/etc/zedit/config.toml`.
 
 ### 4.7 Installed file layout
 
 With `CMAKE_INSTALL_PREFIX=/usr`:
 
 ```
-/usr/bin/edit                    ← edit.py (renamed, chmod +x)
-/etc/edit/config.toml            ← config/default.toml (renamed)
-/usr/share/doc/edit/README.md    ← README.md
+/opt/zedit/bin/zedit                    ← zedit.py (renamed, chmod +x)
+/opt/etc/zedit/config.toml            ← config/default.toml (renamed)
+/opt/zedit/share/doc/zedit/README.md    ← README.md
 ```
 
 With `CMAKE_INSTALL_PREFIX=/usr/local`:
 
 ```
-/usr/local/bin/edit
-/usr/local/etc/edit/config.toml
-/usr/local/share/doc/edit/README.md
+/usr/local/bin/zedit
+/usr/local/opt/etc/zedit/config.toml
+/opt/zedit/share/doc/zedit/README.md
 ```
 
 ### 4.8 CMake targets reference
@@ -396,7 +396,7 @@ cpack -G DEB
 cpack -G DEB --config CPackConfig.cmake -B /tmp/packages
 ```
 
-Output: `build/edit-0.1.0-Linux.deb`
+Output: `build/zedit-0.5.0-Linux.deb`
 
 The CPack DEB generator creates the package by:
 
@@ -428,13 +428,13 @@ cmake --build build --target tarball
 cd build && cpack -G TGZ
 ```
 
-Output: `build/edit-0.1.0-Linux.tar.gz`
+Output: `build/zedit-0.5.0-Linux.tar.gz`
 
 The tarball contains a pre-staged tree rooted at `.` mirroring what
 `cmake --install` would place at the prefix. Unpack with:
 
 ```bash
-tar -xzf edit-0.1.0-Linux.tar.gz -C /usr/local --strip-components=1
+tar -xzf zedit-0.5.0-Linux.tar.gz -C /usr/local --strip-components=1
 ```
 
 ### 5.3 Generating an `.rpm` with CPack
@@ -452,7 +452,7 @@ sudo dnf install rpm-build # Fedora/RHEL
 cd build && cpack -G RPM
 ```
 
-Output: `build/edit-0.1.0-Linux.rpm`
+Output: `build/zedit-0.5.0-Linux.rpm`
 
 ### 5.4 CPack variables reference
 
@@ -462,8 +462,8 @@ All variables are set in `cmake/packaging.cmake`.
 
 | Variable | Value | Description |
 |---|---|---|
-| `CPACK_PACKAGE_NAME` | `edit` | Package name |
-| `CPACK_PACKAGE_VERSION` | `0.1.0` | Taken from `project(VERSION ...)` |
+| `CPACK_PACKAGE_NAME` | `zedit` | Package name |
+| `CPACK_PACKAGE_VERSION` | `0.5.0` | Taken from `project(VERSION ...)` |
 | `CPACK_PACKAGE_CONTACT` | `Maintainer <...>` | Maintainer string |
 | `CPACK_PACKAGE_VENDOR` | `Example Project` | Vendor name |
 | `CPACK_PACKAGING_INSTALL_PREFIX` | `/usr` | Prefix used inside the package |
@@ -508,7 +508,7 @@ Ubuntu repository. It produces a proper `.deb` with full Python integration
 dh_auto_configure  → cmake (via pybuild --buildsystem=cmake)
 dh_auto_build      → cmake --build (builds the wheel)
 dh_auto_test       → skipped (override_dh_auto_test)
-dh_auto_install    → cmake --install DESTDIR=debian/edit/
+dh_auto_install    → cmake --install DESTDIR=debian/zedit/
                      + install config/default.toml (override)
 dh_python3         → rewrites shebang, computes python3:any dep
 dh_installdocs     → installs README.md and copyright
@@ -530,7 +530,7 @@ dh_builddeb        → calls dpkg-deb --build
 -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu
 ```
 
-This is why the CMake `EDIT_SYSCONFDIR` logic (§4.3) correctly resolves
+This is why the CMake `ZEDIT_SYSCONFDIR` logic (§4.3) correctly resolves
 to `/etc` during the Debian build even though the source tree's own
 `build/` directory was configured with a different prefix.
 
@@ -559,7 +559,7 @@ DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -b
 The output files are placed in the **parent directory** of the source tree:
 
 ```
-../edit_0.1.0-1_all.deb          # binary package
+../zedit_0.5.0-1_all.deb          # binary package
 ../edit_0.1.0-1_amd64.buildinfo  # build metadata
 ../edit_0.1.0-1_amd64.changes    # upload description
 ```
@@ -568,43 +568,43 @@ The output files are placed in the **parent directory** of the source tree:
 
 ```bash
 # Package metadata
-dpkg-deb --info ../edit_0.1.0-1_all.deb
+dpkg-deb --info ../zedit_0.5.0-1_all.deb
 
 # File list
-dpkg-deb --contents ../edit_0.1.0-1_all.deb
+dpkg-deb --contents ../zedit_0.5.0-1_all.deb
 
 # Extract everything to a directory
-dpkg-deb -x ../edit_0.1.0-1_all.deb /tmp/edit-extracted
+dpkg-deb -x ../zedit_0.5.0-1_all.deb /tmp/zedit-extracted
 
 # Inspect the control scripts
-dpkg-deb -e ../edit_0.1.0-1_all.deb /tmp/edit-control
-ls /tmp/edit-control/
+dpkg-deb -e ../zedit_0.5.0-1_all.deb /tmp/zedit-control
+ls /tmp/zedit-control/
 
 # Verify the conffiles list
-cat /tmp/edit-control/conffiles
+cat /tmp/zedit-control/conffiles
 ```
 
 ### 6.4 Install and remove
 
 ```bash
 # Install (also satisfies dependencies from apt)
-sudo dpkg -i ../edit_0.1.0-1_all.deb
+sudo dpkg -i ../zedit_0.5.0-1_all.deb
 sudo apt-get install -f    # fix any unsatisfied deps
 
 # Or with apt (if you have a local repo set up)
-sudo apt-get install edit
+sudo apt-get install zedit
 
 # Remove (keeps conffiles)
-sudo apt-get remove edit
+sudo apt-get remove zedit
 
-# Remove and purge all conffiles (including /etc/edit/config.toml)
-sudo apt-get purge edit
+# Remove and purge all conffiles (including /opt/etc/zedit/config.toml)
+sudo apt-get purge zedit
 
 # Check installed files
-dpkg -L edit
+dpkg -L zedit
 
 # Check package status
-dpkg -s edit
+dpkg -s zedit
 ```
 
 ### 6.5 `debian/` directory reference
@@ -655,7 +655,7 @@ A Makefile processed by `dpkg-buildpackage`. The single `%:` rule delegates
 everything to `dh`:
 
 ```makefile
-export PYBUILD_NAME = edit    # tells pybuild which Python package this is
+export PYBUILD_NAME = zedit    # tells pybuild which Python package this is
 
 %:
     dh $@ --with python3 --buildsystem=pybuild
@@ -668,7 +668,7 @@ what pybuild's cmake install does:
 override_dh_auto_install:
     dh_auto_install
     install -Dm 0644 config/default.toml \
-        debian/edit/etc/edit/config.toml
+        debian/edit/opt/etc/zedit/config.toml
 ```
 
 `override_dh_auto_test` suppresses test failures (since no test suite exists):
@@ -691,10 +691,10 @@ Checked by `lintian`.
 `3.0 (quilt)` — the standard modern source format. Allows patches to be
 managed with `quilt`.
 
-#### `debian/edit.docs`
+#### `debian/zedit.docs`
 
 One filename per line; `dh_installdocs` copies these to
-`/usr/share/doc/edit/`. Currently contains `README.md`.
+`/opt/zedit/share/doc/zedit/`. Currently contains `README.md`.
 
 #### `debian/postinst` / `debian/postrm`
 
@@ -705,12 +705,12 @@ See §6.6 below.
 Two maintainer scripts are shipped:
 
 **`debian/postinst`** — runs after the package is installed or upgraded.
-The `configure` action ensures `/etc/edit` exists:
+The `configure` action ensures `/opt/etc/zedit` exists:
 
 ```sh
 case "$1" in
     configure)
-        if [ ! -d /etc/edit ]; then mkdir -p /etc/edit; fi
+        if [ ! -d /opt/etc/zedit ]; then mkdir -p /opt/etc/zedit; fi
         ;;
 esac
 ```
@@ -724,7 +724,7 @@ action removes the config directory:
 ```sh
 case "$1" in
     purge)
-        if [ -d /etc/edit ]; then rm -rf /etc/edit; fi
+        if [ -d /opt/etc/zedit ]; then rm -rf /opt/etc/zedit; fi
         ;;
 esac
 ```
@@ -742,12 +742,12 @@ Maintainer script actions are called with these arguments:
 
 ### 6.7 Conffile handling
 
-`/etc/edit/config.toml` is installed by both the cmake install rule and the
+`/opt/etc/zedit/config.toml` is installed by both the cmake install rule and the
 `override_dh_auto_install` rule. `dh_installdebconf` / `dh_installdeb`
-automatically adds any file under `debian/edit/etc/` to `DEBIAN/conffiles`:
+automatically adds any file under `debian/zedit/etc/` to `DEBIAN/conffiles`:
 
 ```
-/etc/edit/config.toml
+/opt/etc/zedit/config.toml
 ```
 
 This tells `dpkg` that:
@@ -769,7 +769,7 @@ dpkg-buildpackage
 dpkg-buildpackage -S
 
 # Create the orig tarball first (if not already present)
-git archive HEAD --prefix=edit-0.1.0/ | gzip > ../edit_0.1.0.orig.tar.gz
+git archive HEAD --prefix=zedit-0.5.0/ | gzip > ../edit_0.1.0.orig.tar.gz
 
 # Use debuild for a more complete workflow
 debuild -S -sa    # -sa = include orig tarball even if unchanged
@@ -798,8 +798,8 @@ The version number appears in these files and must be updated consistently:
 
 | File | Field | Current value |
 |---|---|---|
-| `pyproject.toml` | `[project] version` | `0.1.0` |
-| `CMakeLists.txt` | `project(edit VERSION ...)` | `0.1.0` |
+| `pyproject.toml` | `[project] version` | `0.5.0` |
+| `CMakeLists.txt` | `project(zedit VERSION ...)` | `0.5.0` |
 | `debian/changelog` | First entry version | `0.1.0-1` |
 
 The `debian/changelog` version has a **Debian revision** suffix (`-1`). It is
@@ -822,18 +822,18 @@ incremented independently of the upstream version for packaging-only changes.
 4. **Build and test all artefacts**:
    ```bash
    # Clean slate
-   rm -rf build dist edit.egg-info .pybuild
+   rm -rf build dist zedit.egg-info .pybuild
 
    # Python wheel
    python -m build --wheel
-   pip install dist/edit-0.2.0-py3-none-any.whl
-   edit --version   # confirm
+   pip install dist/zedit-0.2.0-py3-none-any.whl
+   zedit --version   # confirm
 
    # CMake + CPack
    cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr
    cmake --build build
    cmake --build build --target deb
-   dpkg-deb --info build/edit-0.2.0-Linux.deb
+   dpkg-deb --info build/zedit-0.2.0-Linux.deb
 
    # dpkg-buildpackage
    dpkg-buildpackage -us -uc -b
@@ -848,7 +848,7 @@ incremented independently of the upstream version for packaging-only changes.
 
 6. **Upload** wheel to PyPI:
    ```bash
-   twine upload dist/edit-0.2.0-py3-none-any.whl
+   twine upload dist/zedit-0.2.0-py3-none-any.whl
    ```
 
 7. **Upload** `.dsc` to a Debian repository (if applicable):

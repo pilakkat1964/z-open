@@ -1,7 +1,7 @@
-# edit — User Guide
+# zedit — User Guide
 
-`edit` is a smart file-editor launcher. Instead of typing the editor name
-yourself, you run `edit <file>` and the right editor opens automatically,
+`zedit` is a smart file-editor launcher. Instead of typing the editor name
+yourself, you run `zedit <file>` and the right editor opens automatically,
 chosen by MIME type (content-based) or file extension, according to a
 layered TOML configuration you control at the system, user, and project level.
 
@@ -37,8 +37,8 @@ layered TOML configuration you control at the system, user, and project level.
 ### 1.1 From a Debian / Ubuntu package
 
 The preferred method for system-wide installation on Debian-based systems.
-The package places the `edit` binary in `/usr/bin` and installs the
-system-wide config to `/etc/edit/config.toml` as a managed **conffile**
+The package places the `zedit` binary in `/usr/bin` and installs the
+system-wide config to `/opt/etc/zedit/config.toml` as a managed **conffile**
 (preserved across upgrades unless you choose to overwrite it).
 
 ```bash
@@ -49,7 +49,7 @@ sudo dpkg -i edit_0.1.0-1_all.deb
 sudo apt-get install -f
 
 # Or, if a repository is configured:
-sudo apt-get install edit
+sudo apt-get install zedit
 ```
 
 To also get accurate content-based MIME detection (highly recommended):
@@ -58,16 +58,16 @@ To also get accurate content-based MIME detection (highly recommended):
 sudo apt-get install python3-magic
 ```
 
-To remove the package while preserving `/etc/edit/config.toml`:
+To remove the package while preserving `/opt/etc/zedit/config.toml`:
 
 ```bash
-sudo apt-get remove edit
+sudo apt-get remove zedit
 ```
 
 To remove the package **and** purge the config:
 
 ```bash
-sudo apt-get purge edit
+sudo apt-get purge zedit
 ```
 
 ---
@@ -79,32 +79,32 @@ or any platform with Python ≥ 3.11.
 
 ```bash
 # Install for the current user only (no root needed)
-pip install --user edit-0.1.0-py3-none-any.whl
+pip install --user zedit-0.5.0-py3-none-any.whl
 
 # Or install into the active virtual environment
-pip install edit-0.1.0-py3-none-any.whl
+pip install zedit-0.5.0-py3-none-any.whl
 
 # With libmagic support (recommended)
-pip install "edit-0.1.0-py3-none-any.whl[magic]"
+pip install "zedit-0.5.0-py3-none-any.whl[magic]"
 
 # Or directly from source
 pip install .
 pip install ".[magic]"
 ```
 
-> **Note:** A pip install does **not** create `/etc/edit/config.toml`.
+> **Note:** A pip install does **not** create `/opt/etc/zedit/config.toml`.
 > The system-wide config layer is simply skipped when that file does not exist.
-> Use `edit --init-config` to create a personal config instead.
+> Use `zedit --init-config` to create a personal config instead.
 
 ---
 
 ### 1.3 From the tarball (cmake --install)
 
-The CPack-generated tarball (`edit-0.1.0-Linux.tar.gz`) is a pre-staged tree
+The CPack-generated tarball (`zedit-0.5.0-Linux.tar.gz`) is a pre-staged tree
 that can be unpacked into any prefix.
 
 ```bash
-tar -xzf edit-0.1.0-Linux.tar.gz -C /usr/local --strip-components=1
+tar -xzf zedit-0.5.0-Linux.tar.gz -C /usr/local --strip-components=1
 ```
 
 Or use CMake's install step directly from a build tree (see
@@ -121,15 +121,15 @@ sudo cmake --install build
 ### 1.4 Developer / editable install
 
 ```bash
-git clone https://github.com/example/edit
-cd edit
+git clone https://github.com/proteus-cpi/zedit
+cd zedit
 
-# Editable install — changes to edit.py take effect immediately
+# Editable install — changes to zedit.py take effect immediately
 pip install -e .
 
 # Run without installing
-python edit.py --help
-python -m edit --help   # if __main__.py is present
+python zedit.py --help
+python -m zedit --help   # if __main__.py is present
 ```
 
 ---
@@ -138,21 +138,21 @@ python -m edit --help   # if __main__.py is present
 
 ```bash
 # Open a file — editor is chosen automatically
-edit README.md
-edit src/main.py
-edit config.json
+zedit README.md
+zedit src/main.py
+zedit config.json
 
 # Open multiple files at once
-edit *.py
+zedit *.py
 
 # Preview what would happen without launching anything
-edit --dry-run report.pdf image.png
+zedit --dry-run report.pdf image.png
 
 # See the full mapping table currently in effect
-edit --list
+zedit --list
 
 # Create a personal config to start customising
-edit --init-config
+zedit --init-config
 ```
 
 ---
@@ -160,7 +160,7 @@ edit --init-config
 ## 3. CLI reference
 
 ```
-edit [OPTIONS] [FILE ...]
+zedit [OPTIONS] [FILE ...]
 ```
 
 | Option | Short | Description |
@@ -170,7 +170,7 @@ edit [OPTIONS] [FILE ...]
 | `--config FILE` | `-c` | Load an additional TOML file on top of the standard config stack. Merged last (highest priority). |
 | `--dry-run` | `-n` | Print the editor command(s) that would be executed to **stdout**, then exit without launching. |
 | `--list` | `-l` | Print all MIME-type mappings, extension mappings, fallback editor, and `prefer_mime` setting, then exit. |
-| `--init-config` | | Write a commented starter config to `~/.config/edit/config.toml` and exit. Safe to run on a fresh install; will **overwrite** any existing file. |
+| `--init-config` | | Write a commented starter config to `~/.config/zedit/config.toml` and exit. Safe to run on a fresh install; will **overwrite** any existing file. |
 | `--verbose` | `-v` | Print resolution details (detected MIME type, which mapping matched, which strategy won) to **stderr**. |
 | `--help` | `-h` | Show help and exit. |
 
@@ -202,10 +202,10 @@ keys present only in an earlier source are kept unchanged.
 
 | Priority | Path | When used |
 |---|---|---|
-| 1 (lowest) | Built-in defaults | Always; hardcoded inside `edit.py`. |
-| 2 | `/etc/edit/config.toml` | When the file exists. Installed by OS packages. Override path via `$EDIT_SYSCONFDIR`. |
-| 3 | `~/.config/edit/config.toml` | When the file exists. Personal preferences. |
-| 4 | `./.edit.toml` in CWD | When the file exists. Project-level overrides. |
+| 1 (lowest) | Built-in defaults | Always; hardcoded inside `zedit.py`. |
+| 2 | `/opt/etc/zedit/config.toml` | When the file exists. Installed by OS packages. Override path via `$ZEDIT_SYSCONFDIR`. |
+| 3 | `~/.config/zedit/config.toml` | When the file exists. Personal preferences. |
+| 4 | `./.zedit.toml` in CWD | When the file exists. Project-level overrides. |
 | 5 (highest) | File given to `--config` | When `--config FILE` is passed. Ad-hoc overrides. |
 
 The `--editor CMD` flag bypasses the entire config lookup.
@@ -249,14 +249,14 @@ config inherits the values from lower-priority configs.
 ### 4.3 The `$EDITOR` sentinel
 
 The special string `"$EDITOR"` in any editor value is **not** a shell variable
-— it is a sentinel recognised by `edit` itself. At runtime it is resolved
+— it is a sentinel recognised by `zedit` itself. At runtime it is resolved
 through the following chain, stopping at the first non-empty value:
 
 ```
 $VISUAL  →  $EDITOR  →  vi   (POSIX-guaranteed fallback)
 ```
 
-The bundled built-in defaults use `"$EDITOR"` for every mapping, so `edit`
+The bundled built-in defaults use `"$EDITOR"` for every mapping, so `zedit`
 behaves like a smart wrapper around your preferred editor out of the box.
 
 To hard-code a specific editor for a mapping, just use its name:
@@ -293,14 +293,14 @@ whitespace before being passed to the OS:
 When two config files both define `[mime_types]`, the tables are merged
 key-by-key, not replaced wholesale:
 
-**System config** (`/etc/edit/config.toml`):
+**System config** (`/opt/etc/zedit/config.toml`):
 ```toml
 [mime_types]
 "text/x-python" = "vim"
 "text/html"     = "vim"
 ```
 
-**User config** (`~/.config/edit/config.toml`):
+**User config** (`~/.config/zedit/config.toml`):
 ```toml
 [mime_types]
 "text/html" = "firefox"    # overrides the system default for HTML
@@ -326,7 +326,7 @@ To **delete** a system mapping at the user level, set its value to
 ### 4.6 MIME base-type wildcard
 
 If the full MIME type (e.g. `image/jpeg`) is not found in `[mime_types]`,
-`edit` retries with just the base type (e.g. `image`). This lets you write
+`zedit` retries with just the base type (e.g. `image`). This lets you write
 a single catch-all rule:
 
 ```toml
@@ -342,22 +342,22 @@ Exact entries always take priority over base-type entries.
 ### 4.7 Scaffolding a starter config
 
 ```bash
-edit --init-config
+zedit --init-config
 ```
 
 This writes a fully-commented copy of the built-in defaults to
-`~/.config/edit/config.toml`, creating the directory if needed.
+`~/.config/zedit/config.toml`, creating the directory if needed.
 Edit the file to add your own mappings.
 
 ---
 
 ## 5. MIME-type detection
 
-`edit` uses two detection methods, tried in order:
+`zedit` uses two detection methods, tried in order:
 
 ### 1. libmagic (preferred)
 
-When the `python-magic` package is installed, `edit` uses the C library
+When the `python-magic` package is installed, `zedit` uses the C library
 `libmagic` to inspect the **content** of the file, not its name. This
 correctly identifies:
 
@@ -373,7 +373,7 @@ pip install python-magic              # PyPI
 
 ### 2. Python `mimetypes` stdlib (fallback)
 
-When `python-magic` is not available, `edit` falls back to Python's built-in
+When `python-magic` is not available, `zedit` falls back to Python's built-in
 `mimetypes` module, which guesses the MIME type solely from the file extension
 and a platform-specific MIME database. This is fast and has no external
 dependencies, but cannot detect content mismatches.
@@ -383,15 +383,15 @@ dependencies, but cannot detect content mismatches.
 Use `--mime` to skip detection entirely and assert a MIME type manually:
 
 ```bash
-edit --mime application/json mydata   # treat 'mydata' as JSON
-edit --mime text/x-python script      # treat 'script' as Python
+zedit --mime application/json mydata   # treat 'mydata' as JSON
+zedit --mime text/x-python script      # treat 'script' as Python
 ```
 
 ---
 
 ## 6. Editor resolution logic
 
-For each file, `edit` follows this decision tree:
+For each file, `zedit` follows this decision tree:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -448,7 +448,7 @@ Use `--verbose` to see each step printed to stderr in real time.
 ### Use a specific editor for all web files
 
 ```toml
-# ~/.config/edit/config.toml
+# ~/.config/zedit/config.toml
 [mime_types]
 "text/html"       = "code --wait"
 "text/css"        = "code --wait"
@@ -475,10 +475,10 @@ Use `--verbose` to see each step printed to stderr in real time.
 
 ### Per-project config (no root needed)
 
-Drop a `.edit.toml` in your project root to override any mapping locally:
+Drop a `.zedit.toml` in your project root to override any mapping locally:
 
 ```toml
-# .edit.toml — checked in with the project
+# .zedit.toml — checked in with the project
 [defaults]
 prefer_mime = false    # extension wins in this project
 
@@ -491,7 +491,7 @@ prefer_mime = false    # extension wins in this project
 
 ```bash
 # See the editor for each file without opening anything
-edit --dry-run --verbose $(git diff --name-only)
+zedit --dry-run --verbose $(git diff --name-only)
 ```
 
 ### Override from a script
@@ -499,7 +499,7 @@ edit --dry-run --verbose $(git diff --name-only)
 ```bash
 #!/bin/bash
 # Always use vim in this script, regardless of user config
-edit --editor vim "$@"
+zedit --editor vim "$@"
 ```
 
 ---
@@ -510,12 +510,12 @@ edit --editor vim "$@"
 |---|---|
 | `VISUAL` | Preferred editor. Resolved when an editor value is the `$EDITOR` sentinel, checked before `EDITOR`. |
 | `EDITOR` | Fallback editor. Resolved when `VISUAL` is unset or empty. |
-| `EDIT_SYSCONFDIR` | Overrides the directory searched for the system-wide config (default: `/etc`). Useful for staged installs or non-standard prefixes. |
+| `ZEDIT_SYSCONFDIR` | Overrides the directory searched for the system-wide config (default: `/etc`). Useful for staged installs or non-standard prefixes. |
 
 Example: use a non-standard system config location:
 
 ```bash
-EDIT_SYSCONFDIR=/opt/myapp/etc edit myfile.py
+ZEDIT_SYSCONFDIR=/opt/myapp/etc zedit myfile.py
 ```
 
 ---
@@ -527,7 +527,7 @@ EDIT_SYSCONFDIR=/opt/myapp/etc edit myfile.py
 Run with `--verbose` to trace the resolution:
 
 ```bash
-edit --verbose --dry-run myfile.py
+zedit --verbose --dry-run myfile.py
 ```
 
 The output shows:
@@ -540,7 +540,7 @@ The output shows:
 Then run `--list` to see the full effective config:
 
 ```bash
-edit --list
+zedit --list
 ```
 
 ### MIME type is wrong
@@ -549,7 +549,7 @@ libmagic may misidentify some file types (e.g., short files, empty files).
 Force the correct type with `--mime`:
 
 ```bash
-edit --mime text/x-python myscript
+zedit --mime text/x-python myscript
 ```
 
 Or disable MIME-based lookup for that extension by only defining it in
@@ -591,8 +591,8 @@ sudo apt-get install libmagic1
 Verify the path and TOML syntax:
 
 ```bash
-python3 -c "import tomllib; tomllib.load(open('$HOME/.config/edit/config.toml', 'rb'))"
+python3 -c "import tomllib; tomllib.load(open('$HOME/.config/zedit/config.toml', 'rb'))"
 ```
 
 A parse error prints the line number. The config is silently ignored if the
-file does not exist — `edit --list` will then show only built-in defaults.
+file does not exist — `zedit --list` will then show only built-in defaults.
