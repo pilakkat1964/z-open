@@ -306,5 +306,25 @@ if(ZEDIT_UPDATE_PATH_LOCALBIN)
     )
 endif()
 
+# ── Clean targets ────────────────────────────────────────────────────────────
+#
+# clean     (built-in)  Remove files produced by the build targets.
+#                       cmake --build <build-dir> --target clean
+#
+# distclean (custom)    Remove the entire build directory AND Python-generated
+#                       caches / egg-info / loose package archives from the
+#                       source tree, restoring it to a fresh-clone state.
+#                       cmake --build <build-dir> --target distclean
+#
+add_custom_target(distclean
+    COMMAND "${CMAKE_COMMAND}"
+            -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}
+            -P "${CMAKE_SOURCE_DIR}/cmake/distclean.cmake"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Removing build directory and generated files (distclean)"
+    VERBATIM
+)
+
 # ── Packaging (CPack) ─────────────────────────────────────────────────────────
 include(cmake/packaging.cmake)
