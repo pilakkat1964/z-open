@@ -54,7 +54,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 APP_NAME = "zopen"
-APP_VERSION = "0.6.4"
+APP_VERSION = "0.6.5"
 
 # Candidate directories for the 'ed' symlink alias, tried in order.
 # These are all user-accessible or local-admin locations that do not

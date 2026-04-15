@@ -887,7 +887,7 @@ See GitHub for current issues and feature requests.
 
 ---
 
-**Last Updated:** 2026-04-15  
-**Z-Open Version:** 0.6.4  
+**Last Updated:** 2026-04-16  
+**Z-Open Version:** 0.6.5  
 **Python Support:** 3.10+  
 **Project:** Smart file opener with MIME-type aware application launching
