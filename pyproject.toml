@@ -7,7 +7,7 @@ name = "zopen"
 version = "0.1.0"
 description = "Smart file editor launcher — opens files in the right editor based on MIME type or extension"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = "MIT"
 keywords = ["editor", "mime", "launcher", "cli"]
 
@@ -16,6 +16,12 @@ dependencies = []
 
 [project.optional-dependencies]
 magic = ["python-magic"]
+dev = [
+    "ruff>=0.1.0",
+    "bandit>=1.7.0",
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
 
 [project.scripts]
 zopen = "zopen:main"
@@ -23,3 +29,14 @@ zo    = "zopen:main"
 
 [tool.setuptools]
 py-modules = ["zopen"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # Line length handled by formatter
+
+[tool.ruff.format]
+line-length = 100
