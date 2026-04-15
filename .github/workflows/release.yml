@@ -59,10 +59,33 @@ jobs:
           cmake --build build --target tarball
           ls build/zopen-*.tar.gz
 
-      - name: Build Debian package (DEB) for amd64
+      - name: Build Debian package (multiarch)
+        id: build_deb
         run: |
           cmake --build build --target deb
-          ls build/zopen-*.deb
+          
+          DEB_FILE=$(ls build/zopen-*.deb | head -1)
+          if [ -z "$DEB_FILE" ]; then
+            echo "Debian package creation failed"
+            exit 1
+          fi
+          
+          # Verify Architecture: any in package
+          ARCH=$(dpkg -I "$DEB_FILE" | grep "Architecture:" | awk '{print $2}')
+          echo "Package architecture: $ARCH"
+          if [ "$ARCH" != "any" ]; then
+            echo "ERROR: Package architecture should be 'any', but got '$ARCH'"
+            exit 1
+          fi
+          
+          # Rename to indicate multiarch support
+          DEB_RENAMED="${DEB_FILE%.*}-multiarch.deb"
+          mv "$DEB_FILE" "$DEB_RENAMED"
+          
+          echo "deb-package=$(basename $DEB_RENAMED)" >> "$GITHUB_OUTPUT"
+          ls -lh "$DEB_RENAMED"
+          
+          dpkg -I "$DEB_RENAMED"
 
       - name: Build source archive
         run: |
@@ -75,7 +98,7 @@ jobs:
         id: assets
         run: |
           INSTALL_TGZ=$(ls build/zopen-*.tar.gz)
-          DEB=$(ls build/zopen-*.deb)
+          DEB=$(ls build/zopen-*-multiarch.deb)
           SOURCE_TGZ="zopen-${{ steps.version.outputs.VERSION }}-source.tar.gz"
           echo "INSTALL_TGZ=${INSTALL_TGZ}" >> "$GITHUB_OUTPUT"
           echo "DEB=${DEB}"                 >> "$GITHUB_OUTPUT"

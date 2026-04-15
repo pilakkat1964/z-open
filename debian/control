@@ -14,7 +14,7 @@ Vcs-Browser: https://github.com/example/edit
 Vcs-Git: https://github.com/example/edit.git
 
 Package: edit
-Architecture: all
+Architecture: any
 Depends:
  ${python3:Depends},
  ${misc:Depends},
