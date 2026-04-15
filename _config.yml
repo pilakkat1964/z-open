@@ -1,0 +1,30 @@
+# GitHub Pages Jekyll Configuration for z-open
+# Theme: jekyll-theme-slate
+
+theme: jekyll-theme-slate
+source: docs
+
+# Site Information
+title: Z-Open
+description: "Smart file opener — opens files with the right application based on MIME type or extension"
+show_downloads: true
+
+# GitHub Repository Information
+github:
+  repository_url: https://github.com/pilakkat1964/z-open
+  owner_name: pilakkat1964
+  owner_url: https://github.com/pilakkat1964
+
+# Plugins
+plugins:
+  - jekyll-feed
+
+# Markdown processor
+markdown: kramdown
+
+# Front matter defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
