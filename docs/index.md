@@ -18,29 +18,37 @@ A single-file Python application that intelligently launches appropriate applica
 
 ## 🚀 Quick Start
 
+### Installation
+
+```bash
+# Using pip (simplest method)
+pip install zopen
+
+# Or using system package
+sudo apt install zopen           # Ubuntu/Debian
+brew install z-open             # macOS
+
+# From source
+git clone https://github.com/pilakkat1964/z-open.git
+cd z-open
+pip install -e .
+```
+
 ### Basic Usage
 
 ```bash
-# Open a file with the configured application
+# Open files with configured applications
 zopen myfile.py              # Opens in configured editor for Python files
 zo document.pdf              # Use 'zo' alias for quick access
 zopen --list                 # Show all configured mappings
 zopen --dry-run *.md         # Preview without opening
 zopen --init-config          # Create user config
-```
 
-### Using Modern Commands
-
-```bash
-# Modern hierarchical CLI
+# Modern hierarchical CLI (new!)
 zopen config list            # List all mappings
 zopen config init            # Initialize config
-zopen config map FILE        # Map MIME type for file
-
 zopen mime detect FILE       # Detect MIME type
-zopen mime strategies        # Show detection strategies
-
-zopen app info FILE          # Show app resolution info
+zopen app list               # Show all applications
 ```
 
 ---
@@ -54,7 +62,7 @@ zopen app info FILE          # Show app resolution info
 
 ### For Users
 - **[User Guide](user-guide.md)** - Complete usage documentation
-  - Installation (pip, uv, system packages)
+  - Installation (pip, system packages, from source)
   - CLI reference with all flags and options
   - Configuration format and examples
   - MIME type detection explained
@@ -62,20 +70,27 @@ zopen app info FILE          # Show app resolution info
 
 ### For Developers & Agents
 - **[Design Document](design.md)** - Architecture and internals
-  - Module structure and dependency graph
+  - Modern modular architecture (Phases 1-4)
   - Configuration subsystem details
-  - MIME detection strategy (strategy pattern)
+  - MIME detection with strategy pattern
   - Application resolution algorithm
   - Extension points and customization
 
+- **[Development Guide](../DEVELOPMENT.md)** - Development workflow
+  - Setup and daily development
+  - Testing and validation
+  - Building and packaging
+  - Contributing guidelines
+  - Using scripts/dev.py
+
 - **[Build Guide](build.md)** - Build and packaging
-  - Multiple build paths (pip, wheel, CMake, system packages)
+  - Multiple build paths (pip, CMake, system packages)
   - Packaging for different distributions
   - Release checklist
   - CI/CD pipeline setup
 
 - **[GitHub Actions CI/CD](github-actions.md)** - Automation workflows
-  - Continuous Integration (testing, linting)
+  - Continuous Integration (testing, security)
   - Automated Release (multi-platform packaging)
   - GitHub Pages deployment
   - Security scanning
@@ -89,9 +104,9 @@ Switch between multiple applications for different file types:
 
 ```bash
 zopen main.py         → vim (text/x-python)
-zopen styles.css      → neovim (text/css)
+zopen styles.css      → code (text/css)
 zopen report.pdf      → evince (application/pdf)
-zopen image.png       → gimp (image/png)
+zopen image.png       → feh (image/png)
 ```
 
 ### System Administrator
@@ -104,40 +119,47 @@ Set up project-specific application mappings in `.zopen.toml` for team consisten
 
 ## 🎯 Key Features
 
-✓ **Single-file application** - Easy deployment, minimal dependencies  
-✓ **Modern architecture** - 33 focused classes with strategy pattern  
-✓ **Performance optimized** - 5-10x faster MIME detection with caching  
+✓ **Single-file application** - Easy deployment, no complex dependencies  
+✓ **Python 3.10+** - Works with modern Python  
 ✓ **Layered configuration** - System-wide, user-global, and project-local  
 ✓ **MIME type detection** - Content-based (libmagic) or extension-based fallback  
-✓ **Interactive modes** - Choose application, preview, or dump list  
-✓ **Hierarchical CLI** - Modern subcommands (config, mime, app, util)  
-✓ **100% backward compatible** - All legacy --flags still work  
-✓ **Environment integration** - Respects system application defaults  
+✓ **Interactive modes** - Choose application, preview, or list options  
+✓ **Modern CLI** - Hierarchical subcommands with config and mime tools  
+✓ **Strategy pattern** - Extensible MIME detection with caching  
+✓ **Performance** - Built-in caching for fast repeated operations  
 
 ---
 
-## 🏗️ Architecture Highlights
+## 🏗️ Architecture
 
-### Phases 1-4 Modernization
+Z-Open features a modern, modular architecture while maintaining a single-file deployment:
 
-The z-open project has been comprehensively refactored:
+### Architecture Phases
 
-**Phase 1: Modularization**
-- Extracted 11 domain-specific classes from procedural code
-- Clear separation of concerns
+- **Phase 1**: Domain-specific classes for app detection and execution
+- **Phase 2**: Configuration classes with validation and caching (2-3x faster)
+- **Phase 3**: MIME detection with strategy pattern and caching (5-10x faster)
+- **Phase 4**: Modern CliBuilder for hierarchical command structure
 
-**Phase 2: Configuration System Extraction**
-- 5 new configuration classes with validation and caching
-- 2-3x faster config loading
+### Key Design Principles
 
-**Phase 3: MIME Detection Enhancement**
-- 8 new MIME detection classes using strategy pattern
-- Optional caching and statistics tracking
-- 5-10x faster detection for repeated files
+- Clean separation of concerns with ~33 well-organized classes
+- 3,167 lines of maintainable, documented code
+- Backward compatible with original CLI flags
+- 100% backward compatible with existing configurations
 
-**Phase 4: CLI Architecture Enhancement**
-- Modern hierarchical command structure (zopen config, zopen mime, etc.)
-- 100% backward compatible with original --flags
+---
+
+## 🔧 System Requirements
+
+**Required:**
+- Python >= 3.10 (3.11+ recommended)
+
+**Recommended:**
+- `python-magic` (for accurate content-based MIME detection)
+
+**Optional:**
+- libmagic development files (for python-magic support)
 
 ---
 
@@ -146,7 +168,7 @@ The z-open project has been comprehensively refactored:
 Config files (TOML format) are loaded and merged in this order:
 
 | Priority | Location | Purpose |
-|---|---|---|
+|----------|----------|---------|
 | 1 | Built-in defaults | Always present |
 | 2 | `/opt/etc/zopen/config.toml` | System-wide |
 | 3 | `~/.config/zopen/config.toml` | User-global |
@@ -157,32 +179,72 @@ Config files (TOML format) are loaded and merged in this order:
 
 ```toml
 [defaults]
-app        = "xdg-open"   # Default fallback application
-prefer_mime = true         # MIME wins over extension
+app = "$EDITOR"              # Uses $VISUAL → $EDITOR → xdg-open
+prefer_mime = true          # MIME wins over extension
 
 [mime_types]
 "text/x-python"   = "vim"
 "application/pdf" = "evince"
-"image"           = "gimp"    # wildcard: all image/* types
+"image"          = "feh"     # wildcard: all image/* types
 
 [extensions]
-".md"  = "typora"
+".md"  = "code"
 ".mp4" = "vlc"
 ```
 
 ---
 
-## 🔧 System Requirements
+## 🛠️ Build & Development
 
-**Required:**
-- Python >= 3.10 (for type hints)
+Z-Open uses a streamlined development workflow:
 
-**Recommended:**
-- `python-magic` (for accurate content-based MIME detection)
-- `uv` >= 0.11.0 (for faster dependency management)
+### Development Workflow
 
-**Optional:**
-- libmagic development files (for `python-magic` support)
+```bash
+# First time setup
+./scripts/dev.py setup
+
+# Daily development
+./scripts/dev.py test
+
+# Create packages
+./scripts/dev.py package --version 0.7.0
+
+# Create release
+./scripts/dev.py release --version 0.7.0
+
+# Full workflow
+./scripts/dev.py full --version 0.7.0
+```
+
+### Build Commands
+
+```bash
+# Using pip (simplest)
+pip install .
+pip install ".[dev]"           # with dev dependencies
+
+# Using CMake (for packages)
+mkdir build && cd build
+cmake ..
+make
+make package                   # creates DEB package
+```
+
+See [scripts/README.md](../scripts/README.md) for complete development tool documentation.
+
+---
+
+## 📊 Project Status
+
+| Component | Status |
+|-----------|--------|
+| Core Functionality | ✓ Production Ready |
+| Python Support | ✓ 3.10, 3.11, 3.12, 3.13 |
+| Documentation | ✓ Complete |
+| CI/CD | ✓ GitHub Actions |
+| Security Scanning | ✓ Bandit Integration |
+| Release Process | ✓ Automated |
 
 ---
 
@@ -203,14 +265,16 @@ MIT License - Free for personal and commercial use
 
 ## 🙏 Acknowledgments
 
-Z-open was designed and built to explore AI-assisted development using **Claude via GitHub Copilot**.
+Z-Open was designed and built to explore intelligent application launching with a focus on:
+- Clean code architecture
+- Modern Python patterns
+- AI-assisted development
 
-**Explore the code:** This is an excellent resource for learning Python patterns:
-- Layered configuration systems with validation
-- Strategy pattern for MIME type detection
-- CLI design with hierarchical subcommands
-- TOML parsing and deep merging
-- Modern Python 3.10+ type hints
+**Key Learning Resources:**
+- Layered configuration systems
+- MIME type detection strategies
+- CLI design with argparse
+- TOML parsing and merging
 - Performance optimization with caching
 
 ---
@@ -221,7 +285,8 @@ Z-open was designed and built to explore AI-assisted development using **Claude 
 - [View Full User Guide](user-guide.md)
 - [Read Architecture Design](design.md)
 - [Check Build Options](build.md)
-- [See CI/CD Guide](github-actions.md)
+- [See Development Guide](../DEVELOPMENT.md)
+- [Browse Build Scripts](../scripts/README.md)
 
 ---
 
