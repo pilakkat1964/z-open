@@ -55,45 +55,104 @@ zopen app list               # Show all applications
 
 ## 📚 Documentation
 
+### Table of Contents
+1. [Getting Started](#getting-started)
+2. [User Documentation](#user-documentation)
+3. [Developer Documentation](#developer-documentation)
+4. [Advanced Topics](#advanced-topics)
+
 ### Getting Started
-- **[Installation Guide](user-guide.md#installation)** - Multiple installation methods
-- **[Quick Reference](user-guide.md#quick-reference)** - Common commands and flags
-- **[Configuration Guide](user-guide.md#configuration)** - Setup TOML files
+- **[Installation Guide](user-guide.md#1-installation)** - Multiple installation methods (pip, apt, from source)
+- **[Quick Start](user-guide.md#2-quick-start)** - Common commands and basic usage
+- **[Configuration Basics](user-guide.md#4-configuration)** - How to set up TOML config files
 
-### For Users
-- **[User Guide](user-guide.md)** - Complete usage documentation
-  - Installation (pip, system packages, from source)
+### User Documentation
+- **[User Guide](user-guide.md)** - Complete usage reference
+  - Installation (Debian, pip, tarball, editable)
   - CLI reference with all flags and options
-  - Configuration format and examples
-  - MIME type detection explained
-  - Troubleshooting common issues
+  - Configuration format, examples, and deep-merge semantics
+  - MIME type detection methods
+  - Editor resolution logic
+  - Common workflows
+  - Environment variables and troubleshooting
 
-### For Developers & Agents
+- **[FAQ & Troubleshooting](faq.md)** - Common questions and solutions
+  - Installation & setup issues
+  - Configuration and mappings
+  - MIME type detection problems
+  - Editor resolution questions
+  - File handling edge cases
+  - Scripting and automation
+  - Performance optimization
+  - Integration with popular tools
+
+- **[Examples & Recipes](examples.md)** - Real-world workflows
+  - Developer workflows (Python, web, IDE-based)
+  - Project team setups
+  - System administration tasks
+  - DevOps & automation
+  - Media and content creation
+  - Integration with git, fzf, ripgrep, Docker, Kubernetes, CI/CD
+  - Advanced scenarios and tips
+
+### Developer Documentation
+- **[Python API Documentation](api.md)** - Programmatic use of zopen
+  - Installation for development
+  - Core functions (detect_mime, load_config, resolve_app)
+  - Configuration management API
+  - MIME detection advanced usage
+  - Application resolution API
+  - Complete examples (file opener, config inspector, batch processor)
+  - Error handling and debugging
+
 - **[Design Document](design.md)** - Architecture and internals
   - Modern modular architecture (Phases 1-4)
+  - Module structure and organization
+  - Dependency graph
   - Configuration subsystem details
   - MIME detection with strategy pattern
   - Application resolution algorithm
+  - CLI subsystem and main control flow
   - Extension points and customization
+  - Design decisions and trade-offs
 
 - **[Development Guide](../DEVELOPMENT.md)** - Development workflow
   - Setup and daily development
+  - Using the dev.py wrapper script
   - Testing and validation
   - Building and packaging
+  - Creating releases
   - Contributing guidelines
-  - Using scripts/dev.py
 
 - **[Build Guide](build.md)** - Build and packaging
-  - Multiple build paths (pip, CMake, system packages)
-  - Packaging for different distributions
-  - Release checklist
-  - CI/CD pipeline setup
+  - Repository layout
+  - Python packaging (pip/wheel)
+  - CMake build system
+  - CPack packaging (DEB, RPM, TGZ)
+  - Debian native packaging (dpkg-buildpackage)
+  - Choosing a packaging method
+  - Versioning and release checklist
 
 - **[GitHub Actions CI/CD](github-actions.md)** - Automation workflows
   - Continuous Integration (testing, security)
   - Automated Release (multi-platform packaging)
   - GitHub Pages deployment
   - Security scanning
+
+### Advanced Topics
+- **[Migration Guide](migration.md)** - Upgrading between versions
+  - General upgrade process
+  - v0.7.x upgrade path
+  - v0.6.x upgrade path
+  - Compatibility notes
+  - Configuration migration
+  - Rollback instructions
+  - Version history
+
+- **[CI/CD Pipeline Guide](cicd-guide.md)** - GitHub Actions and automation
+  - Pipeline configuration
+  - Security scanning setup
+  - Release automation
 
 ---
 
@@ -281,13 +340,41 @@ Z-Open was designed and built to explore intelligent application launching with 
 
 ## 📱 Quick Navigation
 
-- [Go to GitHub Repository](https://github.com/pilakkat1964/z-open)
-- [View Full User Guide](user-guide.md)
-- [Read Architecture Design](design.md)
-- [Check Build Options](build.md)
-- [See Development Guide](../DEVELOPMENT.md)
-- [Browse Build Scripts](../scripts/README.md)
+**Getting Started:**
+- [Installation Guide](user-guide.md#1-installation) - Get zopen running in 5 minutes
+- [Quick Start](user-guide.md#2-quick-start) - Common usage patterns
+
+**Finding Answers:**
+- [FAQ & Troubleshooting](faq.md) - Solutions to common problems
+- [Examples & Recipes](examples.md) - Copy-paste solutions for real workflows
+
+**For Developers:**
+- [Python API](api.md) - Use zopen in your code
+- [Architecture Design](design.md) - Understand the internals
+- [Build Guide](build.md) - Package and deploy
+
+**External Resources:**
+- [GitHub Repository](https://github.com/pilakkat1964/z-open) - Source code and issue tracking
+- [Development Guide](../DEVELOPMENT.md) - Contributing and development
+- [Build Scripts](../scripts/README.md) - Automation tools
 
 ---
 
-**Ready to simplify your file opening workflow?** Start with `zopen --init-config` or jump straight to the [Installation Guide](user-guide.md#installation)!
+## 🎓 Documentation by Role
+
+**I'm a user** → Start with [User Guide](user-guide.md), then explore [FAQ](faq.md) and [Examples](examples.md)
+
+**I'm a sysadmin** → Check [System Administration recipes](examples.md#system-administration) and [FAQ](faq.md)
+
+**I'm a developer** → Read [API Documentation](api.md) and [Design Document](design.md)
+
+**I'm contributing code** → See [Development Guide](../DEVELOPMENT.md) and [Design Document](design.md)
+
+**I'm upgrading zopen** → Read [Migration Guide](migration.md) first
+
+---
+
+**Ready to simplify your file opening workflow?** 
+- Start here: `zopen --init-config`
+- Or jump to: [Installation Guide](user-guide.md#1-installation)
+- Need quick answers? Check the [FAQ](faq.md)
