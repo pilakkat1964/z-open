@@ -148,11 +148,159 @@ Runs all steps sequentially, stopping on first failure.
 
 ## Other Scripts
 
-Currently, `dev.py` is the only development script. Additional scripts may be added as needed for:
-- Code generation
-- Documentation building
-- Deployment utilities
-- Performance profiling
+### `release.py` - Automated Release Script
+
+A specialized tool for creating releases with synchronized version updates across all files.
+This is the **recommended method** for creating releases as it ensures all version files stay in sync.
+
+#### Quick Start
+
+```bash
+# Simple release
+./scripts/release.py 0.6.6
+
+# With custom changelog message
+./scripts/release.py 0.6.6 --message "Added new features and bugfixes"
+
+# Dry-run (see what would happen without making changes)
+./scripts/release.py 0.6.6 --dry-run
+
+# Verbose output
+./scripts/release.py 0.6.6 --verbose
+```
+
+#### What It Does
+
+The script automates the full release workflow in a single command:
+
+1. **Validates** version format (X.Y.Z)
+2. **Updates** version in all 3 locations:
+   - `CMakeLists.txt` - project VERSION
+   - `pyproject.toml` - [project] version
+   - `debian/changelog` - adds new entry with timestamp
+3. **Creates** git commit with all version updates
+4. **Pushes** commit to `origin/master`
+5. **Creates** annotated git tag
+6. **Pushes** tag to origin (triggers GitHub Actions)
+
+GitHub Actions then automatically:
+- Builds the .deb package for amd64
+- Creates install .tar.gz archive
+- Generates source .tar.gz archive
+- Creates GitHub Release with all assets
+
+#### Usage Options
+
+```bash
+./scripts/release.py VERSION [OPTIONS]
+
+positional arguments:
+  VERSION               Release version (e.g., 0.6.6)
+
+options:
+  -h, --help            Show this help message
+  -m, --message TEXT    Release message for changelog entry
+  -d, --dry-run         Show what would be done without making changes
+  -v, --verbose         Print detailed output
+```
+
+#### Examples
+
+**Standard release:**
+```bash
+./scripts/release.py 0.6.6
+# Prompts for confirmation, then creates release
+```
+
+**Release with custom changelog message:**
+```bash
+./scripts/release.py 0.6.6 --message "Performance improvements and new CLI options"
+```
+
+**Preview what would happen:**
+```bash
+./scripts/release.py 0.6.6 --dry-run
+# Shows all changes that would be made
+```
+
+**Verbose with message:**
+```bash
+./scripts/release.py 0.6.6 --verbose --message "Release notes"
+# Shows detailed output including generated changelog entry
+```
+
+#### Output Example
+
+```
+ℹ️ Starting z-open release automation...
+
+============================================================
+Release Confirmation: z-open 0.6.6
+============================================================
+  Version: 0.6.6
+  Tag: v0.6.6
+  Debian revision: 0.6.6-1
+============================================================
+
+📝 Updating version files...
+ℹ️ Updated CMakeLists.txt to version 0.6.6
+ℹ️ Updated pyproject.toml to version 0.6.6
+ℹ️ Updated debian/changelog with version 0.6.6-1
+
+💾 Committing changes...
+ℹ️ Created commit: release: bump version to 0.6.6
+
+📤 Pushing version commit...
+ℹ️ Pushed version commit to origin/master
+
+🏷️  Creating and pushing tag...
+ℹ️ Created tag: v0.6.6
+ℹ️ Pushed tag to origin: v0.6.6
+
+============================================================
+RELEASE SUMMARY
+============================================================
+  CMakeLists.txt            VERSION              → 0.6.6
+  pyproject.toml            version              → 0.6.6
+  debian/changelog          version              → 0.6.6-1
+
+Next steps:
+  1. GitHub Actions will build release assets
+  2. Download from: https://github.com/pilakkat1964/z-open/releases/tag/v0.6.6
+  3. Install via: sudo apt install ./zopen-0.6.6-Linux.deb
+============================================================
+
+✅ ✨ Release process complete!
+ℹ️ GitHub Actions will now build the release assets.
+```
+
+#### Error Handling
+
+The script includes validation for:
+- **Invalid version format** - Must be X.Y.Z (e.g., 0.6.5)
+- **Uncommitted changes** - Working tree must be clean
+- **Duplicate tag** - Cannot create release with existing tag
+- **Git operations** - Handles push/commit failures gracefully
+
+#### Comparison with dev.py
+
+| Feature | `release.py` | `dev.py release` |
+|---------|-------------|-----------------|
+| **Speed** | Fast (30s) | Slower (2-5m) |
+| **Complexity** | Simple, focused | Complex, multi-step |
+| **User confirmation** | Yes | Depends on options |
+| **Changelog auto-generation** | Yes | No |
+| **Dry-run support** | Yes | Yes |
+| **Version sync** | Automatic | Manual |
+
+**Recommendation:** Use `release.py` for standard releases. Use `dev.py release` for advanced scenarios like staging releases.
+
+### `dev.py` - Development Workflow Wrapper
+
+A comprehensive tool for managing the entire development lifecycle from setup to release.
+
+Note: The `dev.py release` command is now superseded by `release.py` for most use cases.
+Use `dev.py` for complex release scenarios like staging releases or custom commit messages.
 
 ## Requirements
 
