@@ -1,9 +1,18 @@
 name: Release
 
 on:
+  # Automatically trigger on version tags (v0.0.0, v1.2.3, etc.)
   push:
     tags:
       - 'v*'
+  
+  # Allow manual triggering from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to release (e.g., v0.6.5)'
+        required: true
+        default: 'v0.6.5'
 
 permissions:
   contents: write   # needed to create GitHub releases
@@ -17,6 +26,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history for git archive
+      
+      # For manual dispatch, checkout the specified tag
+      - name: Checkout tag (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch origin "${{ github.event.inputs.version }}"
+          git checkout "${{ github.event.inputs.version }}"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,7 +46,10 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION_TAG="${{ github.event.inputs.version || github.ref_name }}"
+          echo "VERSION=${VERSION_TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "TAG=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen
@@ -40,7 +59,7 @@ jobs:
           cmake --build build --target tarball
           ls build/zopen-*.tar.gz
 
-      - name: Build Debian package (DEB)
+      - name: Build Debian package (DEB) for amd64
         run: |
           cmake --build build --target deb
           ls build/zopen-*.deb
@@ -61,11 +80,18 @@ jobs:
           echo "INSTALL_TGZ=${INSTALL_TGZ}" >> "$GITHUB_OUTPUT"
           echo "DEB=${DEB}"                 >> "$GITHUB_OUTPUT"
           echo "SOURCE_TGZ=${SOURCE_TGZ}"   >> "$GITHUB_OUTPUT"
+          
+          # Log asset information
+          echo "Release Assets:"
+          echo "  Install TGZ: ${INSTALL_TGZ}"
+          echo "  Debian DEB: ${DEB}"
+          echo "  Source TGZ: ${SOURCE_TGZ}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "zopen ${{ github.ref_name }}"
+          name: "zopen ${{ steps.version.outputs.TAG }}"
+          tag_name: ${{ steps.version.outputs.TAG }}
           generate_release_notes: true
           files: |
             ${{ steps.assets.outputs.INSTALL_TGZ }}
