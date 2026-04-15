@@ -61,6 +61,17 @@ zopen --init-config               # scaffold ~/.config/zopen/config.toml
 
 ---
 
+## Contributing
+
+Want to contribute to z-open? We'd love your help! Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- How to report bugs and suggest features
+- Development environment setup
+- Code style guidelines and testing requirements
+- Pull request process and code review expectations
+- Full documentation of our comprehensive 12-guide documentation system
+
+---
+
 ## Configuration at a glance
 
 Config files are TOML, loaded and deep-merged in this order:
