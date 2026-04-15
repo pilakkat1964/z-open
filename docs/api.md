@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Python API Documentation
+---
+
 # zopen — Python API Documentation
 
 Guide for programmatic use of zopen. Import zopen as a Python module to integrate file opening functionality into your applications.
@@ -645,7 +650,7 @@ app = resolve_app(path, layers, verbose=True)
 
 ## See Also
 
-- [User Guide](user-guide.md) - CLI usage and configuration
-- [Design Documentation](design.md) - Internal architecture
-- [FAQ](faq.md) - Common questions
-- [Examples & Recipes](examples.md) - Real-world workflows
+- [User Guide](user-guide) - CLI usage and configuration
+- [Design Documentation](design) - Internal architecture
+- [FAQ](faq) - Common questions
+- [Examples & Recipes](examples) - Real-world workflows

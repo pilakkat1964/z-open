@@ -1,6 +1,10 @@
 # GitHub Pages Jekyll Configuration for z-open
 # Theme: jekyll-theme-slate
 
+# Base URL for GitHub Pages deployment
+baseurl: /z-open
+
+# Theme
 theme: jekyll-theme-slate
 
 # Site Information
@@ -14,16 +18,42 @@ github:
   owner_name: pilakkat1964
   owner_url: https://github.com/pilakkat1964
 
-# Plugins
+# Plugins for GitHub Pages
 plugins:
   - jekyll-feed
+  - jekyll-relative-links
 
 # Markdown processor
 markdown: kramdown
+
+# Kramdown configuration
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Permalink style
+permalink: /:title/
 
 # Front matter defaults
 defaults:
   - scope:
       path: ""
     values:
-      layout: "default"
+      layout: default
+
+# Relative links plugin configuration
+relative_links:
+  collections: true
+
+# Build settings
+keep_files:
+  - .git
+  - .github
+
+# Exclude unnecessary files
+exclude:
+  - Makefile
+  - .gitignore
+  - .github
+  - README.md
+  - DEVELOPMENT.md

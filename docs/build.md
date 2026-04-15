@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Build and Packaging Guide
+---
+
 # zopen — Build and Packaging Guide
 
 This document covers every way to build, install, and package `zopen`,

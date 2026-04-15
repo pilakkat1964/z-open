@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Examples & Recipes
+---
+
 # zopen — Examples & Recipes
 
 Real-world workflows and practical examples for common scenarios. Each recipe is a self-contained, copy-paste-ready solution.
@@ -796,6 +801,6 @@ review-configs() {
 ## Need Help?
 
 - Found a bug or have a suggestion? Submit an issue or PR at [github.com/pilakkat1964/z-open](https://github.com/pilakkat1964/z-open)
-- Check [FAQ](faq.md) for common questions
-- Review [User Guide](user-guide.md) for detailed CLI documentation
-- Explore [Design Documentation](design.md) for internals
+- Check [FAQ](faq) for common questions
+- Review [User Guide](user-guide) for detailed CLI documentation
+- Explore [Design Documentation](design) for internals

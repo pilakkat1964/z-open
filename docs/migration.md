@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Migration Guide
+---
+
 # zopen — Migration Guide
 
 Guide for upgrading zopen to newer versions. Follow the appropriate section based on which version you're upgrading from.
@@ -404,8 +409,8 @@ zopen --init-config
 
 If you encounter issues during upgrade:
 
-1. **Check the [FAQ](faq.md)** - Most common issues are documented
-2. **Review [Troubleshooting](user-guide.md#9-troubleshooting)** - Solutions for common problems
+1. **Check the [FAQ](faq)** - Most common issues are documented
+2. **Review [Troubleshooting](user-guide#9-troubleshooting)** - Solutions for common problems
 3. **Run with verbose mode:**
    ```bash
    zopen --verbose --dry-run yourfile.txt

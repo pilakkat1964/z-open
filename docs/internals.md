@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Code Internals
+---
+
 # zopen Code Architecture and Internals
 
 This document supplements the inline code comments in `zopen.py` and explains the overall architecture and key design decisions.
@@ -443,6 +448,6 @@ Exception
 
 ## Related Documentation
 
-- [Design Document](design.md) - High-level architecture
-- [Development Guide](../DEVELOPMENT.md) - Contributing guidelines
-- [API Documentation](api.md) - Public API reference
+- [Design Document](design) - High-level architecture
+- [Development Guide](../DEVELOPMENT) - Contributing guidelines
+- [API Documentation](api) - Public API reference

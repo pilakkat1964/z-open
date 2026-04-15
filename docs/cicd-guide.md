@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open CI/CD & Release Guide
+---
+
 # zopen — CI/CD & Release Guide
 
 > **Audience:** This guide is written for contributors and maintainers who are

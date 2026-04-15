@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Design and Architecture
+---
+
 # zopen — Design and Code Documentation
 
 This document describes the internal architecture of `zopen`, the data

@@ -286,9 +286,9 @@ bundle exec jekyll serve
 
 ## Related Documentation
 
-- **[Build Guide](build.md)** - Building and packaging
-- **[Design Document](design.md)** - Architecture overview
-- **[User Guide](user-guide.md)** - Usage documentation
+- **[Build Guide](build)** - Building and packaging
+- **[Design Document](design)** - Architecture overview
+- **[User Guide](user-guide)** - Usage documentation
 
 ---
 

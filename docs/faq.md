@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open Frequently Asked Questions
+---
+
 # zopen — Frequently Asked Questions
 
 This guide addresses common questions, unexpected behaviors, and advanced scenarios not covered in the main user guide.
@@ -360,7 +365,7 @@ editor_cmd = resolve_editor(mime, 'myfile.py', config)
 print(f"Would open with: {editor_cmd}")
 ```
 
-See [API Documentation](api.md) for full details.
+See [API Documentation](api) for full details.
 
 ### Q: I want to open a file but not block the shell. How?
 
@@ -419,11 +424,11 @@ zopen /tmp/mypipe
 
 | Topic | Guide |
 |-------|-------|
-| Installation, CLI, config format | [User Guide](user-guide.md) |
-| Internal architecture, module structure | [Design Documentation](design.md) |
-| Building, packaging, releases | [Build Guide](build.md) |
-| Programmatic use | [API Documentation](api.md) |
-| Real-world workflows | [Examples & Recipes](examples.md) |
+| Installation, CLI, config format | [User Guide](user-guide) |
+| Internal architecture, module structure | [Design Documentation](design) |
+| Building, packaging, releases | [Build Guide](build) |
+| Programmatic use | [API Documentation](api) |
+| Real-world workflows | [Examples & Recipes](examples) |
 
 ### Q: zopen works fine in my terminal but fails in a cron job
 
@@ -617,7 +622,7 @@ map x zopen %f
 
 ## Still have questions?
 
-- Check the [User Guide](user-guide.md) for detailed CLI and config documentation
-- Review [Examples & Recipes](examples.md) for real-world workflows
-- Read [Design Documentation](design.md) to understand the internals
-- Check the [Troubleshooting](user-guide.md#9-troubleshooting) section in the user guide
+- Check the [User Guide](user-guide) for detailed CLI and config documentation
+- Review [Examples & Recipes](examples) for real-world workflows
+- Read [Design Documentation](design) to understand the internals
+- Check the [Troubleshooting](user-guide#9-troubleshooting) section in the user guide

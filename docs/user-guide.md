@@ -1,3 +1,8 @@
+---
+layout: default
+title: Z-Open User Guide
+---
+
 # zopen — User Guide
 
 `zopen` is a smart file-editor launcher. Instead of typing the editor name
@@ -108,7 +113,7 @@ tar -xzf zopen-0.5.0-Linux.tar.gz -C /usr/local --strip-components=1
 ```
 
 Or use CMake's install step directly from a build tree (see
-[docs/build.md](build.md) for the full CMake workflow):
+[docs/build.md](build) for the full CMake workflow):
 
 ```bash
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr/local
