@@ -8,6 +8,7 @@ on:
       - 'docs/**'
       - '_config.yml'
       - '_layouts/**'
+      - 'Gemfile'
       - '.github/workflows/pages.yml'
 
 permissions:
