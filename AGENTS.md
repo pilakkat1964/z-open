@@ -1067,13 +1067,62 @@ curl -I http://pilakkat.mywire.org/z-open/
 
 ---
 
+## Recent Session Updates (Priority 4: PyPI Publishing)
+
+### ✅ Completed: PyPI Publishing Setup (April 16, 2026)
+
+**Changes Applied:**
+
+1. **Package Metadata Standardization**
+   - Added author email: `{name = "zopen contributors", email = "dev@example.com"}`
+   - Added project URLs: Homepage, Repository, Documentation, Bug Tracker (all pointing to pilakkat.mywire.org or GitHub)
+   - Added Python version classifiers: 3.10, 3.11, 3.12, 3.13 (comprehensive coverage)
+   - Added development status classifier: "4 - Beta"
+   - Added topic classifiers: System Shells, Utilities
+
+2. **PyPI Publishing Workflow**
+   - Created `.github/workflows/publish-pypi.yml` (47 lines)
+   - Automatically triggered on git tags matching `v*` pattern
+   - Uses `pypa/gh-action-pypi-publish@release/v1` for secure PyPI token handling
+   - Builds both wheel and source distributions using `python -m build`
+   - Verifies package metadata with `twine check` before publishing
+   - Includes verification step after publication
+
+3. **Security & Configuration**
+   - GitHub Actions environment configured for PyPI deployments
+   - Requires `PYPI_API_TOKEN` secret stored in repository settings
+   - Uses environment protection rules for secure token handling
+   - Verbose output enabled for debugging failed deployments
+
+**Files Modified:**
+- `pyproject.toml` - Metadata additions (authors, URLs, classifiers)
+- `.github/workflows/publish-pypi.yml` (NEW)
+
+**Commits Created:**
+- `e24829f`: "feat: add PyPI publishing workflow and standardize metadata"
+
+**Impact:**
+- zopen can now be published to PyPI automatically on release
+- Professional package metadata with correct classifiers for 4 Python versions
+- Secure, automated PyPI publishing via GitHub Actions
+- Users can install via: `pip install zopen` (once published)
+
+**Next Steps for PyPI Deployment:**
+1. Generate PyPI API token at https://pypi.org/manage/account/tokens/
+2. Add token as `PYPI_API_TOKEN` repository secret in GitHub
+3. Tag and push release: `git tag v0.6.5 && git push origin v0.6.5`
+4. Workflow runs automatically and publishes to PyPI
+5. Verify package appears at https://pypi.org/project/zopen/
+
+---
+
 ## Future Development Priorities
 
-### Priority 4: PyPI Publishing (Python Projects)
-- Publish z-edit to PyPI package index
-- Publish z-open to PyPI package index
-- Create PyPI-specific documentation
-- Set up automated PyPI releases in GitHub Actions
+### Priority 5: Crates.io Publishing (Rust Projects)
+- Publish z-kitty-launcher to Crates.io registry
+- Publish z-rclone-mount-applete to Crates.io registry
+- Create Crates.io documentation
+- Set up automated Crates.io releases in GitHub Actions
 
 ### Priority 5: Crates.io Publishing (Rust Projects)
 - Publish z-kitty-launcher to Crates.io registry
@@ -1111,6 +1160,6 @@ curl -I http://pilakkat.mywire.org/z-open/
 
 ---
 
-**Status Summary**: ✅ Production-ready. GitHub Pages deployed and live. Cross-project navigation working. ARM64 multiarch support active. SSH+Git operational. Ready for PyPI publishing phase.
+**Status Summary**: ✅ Production-ready. GitHub Pages deployed and live. Cross-project navigation working. ARM64 multiarch support active. PyPI publishing configured. SSH+Git operational. Ready for Crates.io publishing phase.
 
-**Last Updated**: April 16, 2026 (GitHub Pages deployment verified + cross-project navigation standardized)
+**Last Updated**: April 16, 2026 (Priority 4: PyPI publishing workflow added + metadata standardized)
