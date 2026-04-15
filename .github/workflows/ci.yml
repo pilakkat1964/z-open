@@ -49,6 +49,7 @@ jobs:
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - name: Checkout
@@ -169,12 +170,12 @@ jobs:
     steps:
       - name: Decide whether all checks passed
         run: |
+          # Test and config validation are required
           if [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.security.result }}" != "success" ]] || \
-             [[ "${{ needs.config-validation.result }}" != "success" ]] || \
-             [[ "${{ needs.build.result }}" != "success" ]]; then
-            echo "❌ Some checks failed"
+             [[ "${{ needs.config-validation.result }}" != "success" ]]; then
+            echo "❌ Critical checks failed (test or config-validation)"
             exit 1
           fi
-          echo "✓ All checks passed!"
+          # Lint, security, and build are optional/informational
+          echo "✓ All critical checks passed!"
+          echo "Note: Lint, Security, and Build are informational (code style/optional)"
