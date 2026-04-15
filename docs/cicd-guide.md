@@ -144,26 +144,47 @@ This is the minimum permission required; no other GitHub resources are touched.
 
 ### Step 1 — Update the version number
 
-Open `CMakeLists.txt` and bump the `VERSION` field:
+Update the version in **all three locations**:
 
-```cmake
-project(zopen
-    VERSION      0.6.0   # ← change this
-    ...
-)
-```
+1. **`CMakeLists.txt`** — update the `VERSION` field:
+   ```cmake
+   project(zopen
+       VERSION      0.6.5   # ← change this
+       ...
+   )
+   ```
 
-Commit the change:
+2. **`pyproject.toml`** — update the `version` field:
+   ```toml
+   [project]
+   version = "0.6.5"   # ← change this
+   ```
+
+3. **`debian/changelog`** — add a new entry at the top (use `dch` or edit manually):
+   ```bash
+   dch -v 0.6.5-1 "Release 0.6.5 - <description of changes>"
+   ```
+   Or edit `debian/changelog` directly:
+   ```
+   zopen (0.6.5-1) unstable; urgency=low
+
+     * Release 0.6.5 - Your release notes here
+     * Multiple bullet points if needed
+
+    -- Maintainer <maintainer@example.com>  DATE
+   ```
+
+Commit all version changes:
 
 ```bash
-git add CMakeLists.txt
-git commit -m "release: bump version to 0.6.0"
+git add CMakeLists.txt pyproject.toml debian/changelog
+git commit -m "release: bump version to 0.6.5"
 ```
 
-### Step 2 — Push the commit
+### Step 2 — Push the version commit
 
 ```bash
-git push
+git push origin master
 ```
 
 ### Step 3 — Create and push the tag
@@ -171,26 +192,37 @@ git push
 The tag name **must** start with `v` followed by the version number:
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag -a v0.6.5 -m "Release 0.6.5 - Your release description"
+git push origin v0.6.5
 ```
 
-That single `git push origin v0.6.0` command is the only manual action required
+That single `git push origin v0.6.5` command is the only manual action required
 to trigger the entire release pipeline.
 
-### Step 4 — Wait for the workflow to finish (~2 minutes)
+### Step 4 — (Optional) Monitor the workflow
 
 Monitor progress at:
 
 ```
-https://github.com/proteus-cpi/zopen/actions
+https://github.com/pilakkat1964/z-open/actions/workflows/release.yml
 ```
 
 When the workflow succeeds, the release is published automatically at:
 
 ```
-https://github.com/proteus-cpi/zopen/releases/tag/v0.6.0
+https://github.com/pilakkat1964/z-open/releases/tag/v0.6.5
 ```
+
+### Alternative: Manual release dispatch (via GitHub UI)
+
+If you need to create a release manually without pushing a tag:
+
+1. Go to **Actions** → **Release** workflow
+2. Click **Run workflow**
+3. Enter the version tag (e.g., `v0.6.5`) in the input field
+4. Click **Run workflow**
+
+The release will be created with the same artifacts as an automated release.
 
 ---
 
@@ -217,17 +249,38 @@ Once the tag is pushed GitHub Actions:
    only the files tracked by Git (no build artefacts, no editor swap files).
 
 7. **Creates the GitHub Release** using the
-   [`softprops/action-gh-release`](https://github.com/softprops/action-gh-release)
-   action, which:
-   - Sets the release title to `zopen vX.Y.Z`
-   - Auto-generates a changelog from commit messages since the previous tag
-   - Uploads both `.tar.gz` files as release assets
+    [`softprops/action-gh-release`](https://github.com/softprops/action-gh-release)
+    action, which:
+    - Sets the release title to `zopen vX.Y.Z`
+    - Auto-generates a changelog from commit messages since the previous tag
+    - Uploads all three release assets (see below)
 
 ---
 
 ## 6. The release assets explained
 
-Each release ships two archives:
+Each release ships three archives:
+
+### `zopen-X.Y.Z-Linux.deb` — Debian package (amd64)
+
+This is the **recommended package for Linux users**.  Install via:
+
+```bash
+sudo apt install ./zopen-0.6.5-Linux.deb
+```
+
+Or download and install directly:
+
+```bash
+wget https://github.com/pilakkat1964/z-open/releases/download/v0.6.5/zopen-0.6.5-Linux.deb
+sudo apt install ./zopen-0.6.5-Linux.deb
+```
+
+**Includes:**
+- Pre-built binary under `/opt/zopen/bin/zopen`
+- System configuration at `/opt/etc/zopen/config.toml`
+- Automatic installation of launcher scripts
+- Easy uninstall via `apt remove zopen`
 
 ### `zopen-X.Y.Z-Linux.tar.gz` — Install archive
 
@@ -248,7 +301,7 @@ opt/
 **To install:**
 
 ```bash
-sudo tar -xzf zopen-0.5.0-Linux.tar.gz -C /
+sudo tar -xzf zopen-0.6.5-Linux.tar.gz -C /
 ```
 
 **To uninstall:**
@@ -267,9 +320,9 @@ platform, or audit the release.
 **To build from source:**
 
 ```bash
-tar -xzf zopen-0.5.0-source.tar.gz
-cd zopen-0.5.0-source/
-cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen
+tar -xzf zopen-0.6.5-source.tar.gz
+cd zopen-0.6.5-source/
+cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen -DZOPEN_BUILD_WHEEL=OFF
 cmake --build build --target tarball   # or: --target deb
 ```
 
@@ -277,7 +330,7 @@ cmake --build build --target tarball   # or: --target deb
 
 ## 7. Monitoring a running workflow
 
-1. Go to **https://github.com/proteus-cpi/zopen/actions**
+1. Go to **https://github.com/pilakkat1964/z-open/actions**
 2. Click the workflow run that appeared after you pushed the tag.
 3. Click any step to expand its log output in real time.
 4. A green tick (✓) means the step passed; a red cross (✗) means it failed.

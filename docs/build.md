@@ -807,9 +807,9 @@ The version number appears in these files and must be updated consistently:
 
 | File | Field | Current value |
 |---|---|---|
-| `pyproject.toml` | `[project] version` | `0.5.0` |
-| `CMakeLists.txt` | `project(zopen VERSION ...)` | `0.5.0` |
-| `debian/changelog` | First entry version | `0.1.0-1` |
+| `pyproject.toml` | `[project] version` | `0.6.5` |
+| `CMakeLists.txt` | `project(zopen VERSION ...)` | `0.6.5` |
+| `debian/changelog` | First entry version | `0.6.5-1` |
 
 The `debian/changelog` version has a **Debian revision** suffix (`-1`). It is
 incremented independently of the upstream version for packaging-only changes.
