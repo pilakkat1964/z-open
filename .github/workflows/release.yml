@@ -52,7 +52,7 @@ jobs:
           echo "TAG=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake
-        run: cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen
+        run: cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/zopen -DZOPEN_BUILD_WHEEL=OFF
 
       - name: Build install archive (TGZ)
         run: |
