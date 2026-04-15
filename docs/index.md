@@ -389,3 +389,15 @@ Z-Open was designed and built to explore intelligent application launching with 
 - Start here: `zopen --init-config`
 - Or jump to: [Installation Guide](user-guide#1-installation)
 - Need quick answers? Check the [FAQ](faq)
+
+---
+
+## 🔗 Related Z-Tools Projects
+
+**Explore other tools in the z-tools ecosystem:**
+
+- **[Z-Edit](http://pilakkat.mywire.org/z-edit/)** — Opens files with the right editor
+- **[Z-Kitty Launcher](http://pilakkat.mywire.org/z-kitty-launcher/)** — Terminal session manager for Kitty
+- **[RClone Mount Applete](https://pilakkat.mywire.org/z-rclone-mount-applete/)** — System tray manager for cloud storage
+
+**[→ View Master Index](http://pilakkat.mywire.org/master-index/)** — Complete guide to all z-tools projects
