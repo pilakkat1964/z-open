@@ -17,7 +17,30 @@ This design ensures clean separation of concerns while keeping deployment simple
 
 ## Quick Start
 
-### First Time Setup
+### Using the Development Wrapper (Recommended)
+
+Z-Open includes `scripts/dev.py`, a workflow wrapper that automates common tasks:
+
+```bash
+# Clone the repository and enter directory
+git clone git@github.com:pilakkat1964/z-open.git
+cd z-open
+
+# One-time setup (creates venv, installs dependencies)
+./scripts/dev.py setup
+
+# Test your changes
+./scripts/dev.py test
+
+# When ready to release
+./scripts/dev.py release --version 0.7.0
+```
+
+See `scripts/README.md` for complete documentation on all available commands.
+
+### Manual Setup (Alternative)
+
+If you prefer to set up manually without the wrapper:
 
 ```bash
 # Clone the repository and enter directory
@@ -36,10 +59,24 @@ python zopen.py config list
 
 ### Daily Development
 
+Using the wrapper:
+
 ```bash
 # Make changes to zopen.py or config files
 
-# Test manually (most changes are simple additions)
+# Test your changes
+./scripts/dev.py test
+
+# Create packages and review
+./scripts/dev.py package --version 0.7.0
+```
+
+Or manually (if not using the wrapper):
+
+```bash
+# Make changes to zopen.py or config files
+
+# Test manually
 python zopen.py --help
 python zopen.py app list
 python zopen.py mime list
@@ -49,6 +86,21 @@ python -c "from zopen import ConfigManager; ConfigManager().get_mime_handlers('t
 ```
 
 ### Create a Release
+
+Using the wrapper (recommended):
+
+```bash
+# Run complete workflow: test → build → package → release
+./scripts/dev.py full --version 0.7.0
+
+# Or just create a release (if you've already tested)
+./scripts/dev.py release --version 0.7.0
+
+# View the released version at:
+# https://github.com/pilakkat1964/z-open/releases/tag/v0.7.0
+```
+
+Manual process:
 
 ```bash
 # Update version in pyproject.toml
