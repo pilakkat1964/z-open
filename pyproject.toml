@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zopen"
-version = "0.1.0"
+version = "0.6.5"
 description = "Smart file editor launcher — opens files in the right editor based on MIME type or extension"
 readme = "README.md"
 requires-python = ">=3.10"

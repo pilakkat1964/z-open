@@ -1,8 +1,20 @@
-edit (0.1.0-1) unstable; urgency=low
+zopen (0.6.5-1) unstable; urgency=low
 
-  * Initial packaging.
-  * Smart file editor launcher based on MIME type or file extension.
-  * Configurable editor mapping via layered TOML files.
-  * System-wide config installed to /etc/edit/config.toml.
+  * Release 0.6.5 - Documentation and CI/CD improvements
+  * Comprehensive documentation overhaul with 5,500+ lines
+  * GitHub Pages deployment with professional Slate theme
+  * Enhanced CI/CD workflow with GitHub Actions
+  * Added FAQ, examples, API docs, and internals documentation
+  * Initial GitHub release with binary packages
+
+ -- Maintainer <maintainer@example.com>  Wed, 15 Apr 2026 22:30:00 +0000
+
+zopen (0.6.4-1) unstable; urgency=low
+
+  * Release 0.6.4 - Smart file editor launcher
+  * MIME type detection and file extension based editor mapping
+  * Layered TOML configuration system
+  * System-wide and user-level configuration support
+  * Python 3.10+ compatible
 
  -- Maintainer <maintainer@example.com>  Tue, 08 Apr 2026 07:00:00 +0000
