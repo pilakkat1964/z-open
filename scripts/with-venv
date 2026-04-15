@@ -1,0 +1,40 @@
+#!/bin/bash
+# z-open: run a command in the virtual environment
+#
+# This script runs a given command within the project's virtual environment,
+# ensuring a consistent, portable Python setup.
+#
+# Usage:
+#   scripts/with-venv python zopen.py --help
+#   scripts/with-venv pytest
+#   scripts/with-venv pip install somepackage
+#   scripts/with-venv cmake --build build --target deb
+#
+# Or activate the venv in your current shell:
+#   source scripts/activate.sh
+#
+
+set -e
+
+# Find project root
+if [ -n "$BASH_SOURCE" ]; then
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+else
+    SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
+fi
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+VENV_DIR="$PROJECT_ROOT/.venv"
+PYTHON_EXE="$VENV_DIR/bin/python"
+
+# Ensure venv exists
+if [ ! -e "$PYTHON_EXE" ]; then
+    echo "⚠️  Virtual environment not found. Setting up..."
+    bash "$SCRIPT_DIR/activate.sh" > /dev/null 2>&1
+fi
+
+# Run command with venv Python in PATH
+export PATH="$VENV_DIR/bin:$PATH"
+
+# Execute the command
+exec "$@"

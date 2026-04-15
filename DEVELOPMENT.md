@@ -17,44 +17,147 @@ This design ensures clean separation of concerns while keeping deployment simple
 
 ## Quick Start
 
-### Using the Development Wrapper (Recommended)
+### ⚡ Quickest Path (Automated with dev.py)
 
-Z-Open includes `scripts/dev.py`, a workflow wrapper that automates common tasks:
+Z-Open includes `scripts/dev.py`, a workflow wrapper that automates virtual environment setup and common tasks:
 
 ```bash
 # Clone the repository and enter directory
 git clone git@github.com:pilakkat1964/z-open.git
 cd z-open
 
-# One-time setup (creates venv, installs dependencies)
+# One-time setup (creates venv with uv or standard venv, installs dependencies)
 ./scripts/dev.py setup
 
 # Test your changes
 ./scripts/dev.py test
 
 # When ready to release
-./scripts/dev.py release --version 0.7.0
+./scripts/release.py 0.7.0
 ```
 
 See `scripts/README.md` for complete documentation on all available commands.
 
-### Manual Setup (Alternative)
+### Manual Virtual Environment Setup
 
-If you prefer to set up manually without the wrapper:
+If you prefer to manage the virtual environment yourself:
+
+#### **Option 1: Using uv (Fast & Recommended)**
 
 ```bash
-# Clone the repository and enter directory
+# Clone the repository
 git clone git@github.com:pilakkat1964/z-open.git
 cd z-open
 
-# Set up development environment (Python 3.10+)
+# Use the provided activation script (automatic venv setup)
+source scripts/activate.sh
+
+# Verify setup
+python --version
+python zopen.py --help
+```
+
+#### **Option 2: Using standard venv**
+
+```bash
+# Clone the repository
+git clone git@github.com:pilakkat1964/z-open.git
+cd z-open
+
+# Create virtual environment manually
+python3.10 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install --upgrade pip setuptools wheel
+pip install -e ".[dev]"
+
+# Verify setup
+python zopen.py --help
+python zopen.py config list
+```
+
+### Running Commands in Virtual Environment
+
+Once your venv is set up, use one of these approaches:
+
+**Approach 1: Activate then run (recommended for interactive development)**
+```bash
+source scripts/activate.sh
+python zopen.py --help
+pytest
+cmake --build build --target deb
+```
+
+**Approach 2: Use the with-venv wrapper (for one-off commands)**
+```bash
+scripts/with-venv python zopen.py --help
+scripts/with-venv pytest
+scripts/with-venv pip install somepackage
+```
+
+**Approach 3: Use dev.py wrapper (for release workflows)**
+```bash
+./scripts/dev.py test
+./scripts/dev.py build
+./scripts/release.py 0.7.0
+```
+
+## Virtual Environment Management
+
+### ⚠️ Important: Always Use Virtual Environment
+
+The project **must** use a virtual environment for:
+- ✅ **Portability** - Works across different systems without system Python conflicts
+- ✅ **Consistency** - Same dependencies in CI/CD and local development
+- ✅ **Isolation** - Project dependencies don't affect system Python
+- ✅ **Reproducibility** - Exact same environment for all developers
+
+### Automatic Setup
+
+The `scripts/activate.sh` script automatically:
+1. Checks if `.venv` exists
+2. Creates it using `uv` (if available) or standard `venv`
+3. Installs/upgrades pip, setuptools, wheel
+4. Installs project dependencies from `pyproject.toml[dev]`
+5. Activates the virtual environment
+
+```bash
+# Automatic setup
+source scripts/activate.sh
+```
+
+### Manual Setup
+
+If you need to set it up manually:
+
+```bash
+# Using uv (fast, recommended)
+uv venv .venv --python 3.10
+source .venv/bin/activate
+uv pip install -e ".[dev]"
+
+# Or using standard venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+```
 
-# Verify setup works
+### Verification
+
+After setup, verify everything works:
+
+```bash
+# Check Python version
+python --version  # Should be 3.10+
+
+# Check venv location
+which python      # Should show path to .venv/bin/python
+
+# Run basic tests
 python zopen.py --help
-python zopen.py config list
+python zopen.py --version
+python -m pytest --version
 ```
 
 ### Daily Development
@@ -272,9 +375,192 @@ class NewConfigHandler(ConfigValidator):
 
 ## Testing
 
-Currently, z-open focuses on manual testing and integration testing via the CLI. Future enhancements may add automated unit tests.
+### Local Testing Guide
 
-### Manual Testing Checklist
+Before committing changes, ensure you're in the virtual environment and run the following tests:
+
+#### **Quick Verification** (for small changes)
+
+```bash
+# Activate venv first
+source scripts/activate.sh
+
+# Basic functionality check
+python zopen.py --help
+python zopen.py --version
+
+# Quick config check
+python zopen.py config list
+```
+
+#### **Full Testing Workflow** (before committing)
+
+**Step 1: Run Unit Tests (if available)**
+
+```bash
+# If tests exist in tests/ directory
+scripts/with-venv pytest -v
+
+# Or if you have activated the venv
+pytest -v
+
+# Run with coverage report
+pytest --cov=zopen --cov-report=html
+# View report at htmlcov/index.html
+```
+
+**Step 2: Manual CLI Testing**
+
+```bash
+# Test core commands
+python zopen.py --help
+python zopen.py --version
+python zopen.py util diagnose
+
+# Test configuration system
+python zopen.py config list
+python zopen.py config get mime
+python zopen.py config validate
+
+# Test MIME detection
+python zopen.py mime list
+python zopen.py mime detect /etc/passwd
+python zopen.py mime detect ~/.bashrc
+
+# Test app detection
+python zopen.py app list
+python zopen.py app find text/plain
+python zopen.py app find text/html
+
+# Test actual file opening (in dry-run mode if available)
+python zopen.py /etc/hosts
+python zopen.py ~/.bashrc
+```
+
+**Step 3: Test Configuration Changes**
+
+If you modified config files or configuration logic:
+
+```bash
+# Verify configuration loads without errors
+python -c "from zopen import ConfigManager; \
+    cm = ConfigManager(); \
+    print('Loaded:', len(cm.config), 'configuration sections')"
+
+# Check specific configuration
+python -c "from zopen import ConfigManager; \
+    cm = ConfigManager(); \
+    handlers = cm.get_mime_handlers('text/plain'); \
+    print('Handlers for text/plain:', handlers)"
+
+# List all MIME types
+python zopen.py mime list | head -20
+```
+
+**Step 4: Test Code Changes**
+
+For changes to specific classes:
+
+```bash
+# Test MIME detection strategies
+python -c "from zopen import MimeDetector; \
+    detector = MimeDetector(); \
+    mime = detector.detect('/etc/hosts'); \
+    print('Detected MIME type:', mime)"
+
+# Test app detection
+python -c "from zopen import AppDetector; \
+    detector = AppDetector(); \
+    apps = detector.find_apps('firefox'); \
+    print('Found apps:', apps)"
+
+# Test app execution (without actually opening files)
+python -c "from zopen import AppExecutor; \
+    exec = AppExecutor(); \
+    print('Executable ready to test')"
+```
+
+#### **Full Regression Test Checklist**
+
+Before creating a release, run this complete checklist:
+
+```bash
+# Ensure you're in the venv
+source scripts/activate.sh
+
+# 1. Run automated tests (if available)
+pytest -v --tb=short
+
+# 2. Check linting (if available)
+ruff check zopen.py
+
+# 3. Check type hints (if used)
+mypy zopen.py --ignore-missing-imports
+
+# 4. Test all CLI commands
+python zopen.py --help
+python zopen.py --version
+python zopen.py util diagnose
+python zopen.py config list
+python zopen.py config get mime
+python zopen.py config get apps
+python zopen.py config validate
+python zopen.py mime list
+python zopen.py app list
+
+# 5. Test file operations
+python zopen.py /etc/hosts
+python zopen.py ~/.bashrc
+python zopen.py /usr/share/pixmaps/*.png
+
+# 6. Build packages
+mkdir -p build
+cd build
+cmake ..
+make package
+ls -lah *.deb
+cd ..
+
+# 7. Test package installation (optional, if you want to test the actual installer)
+# sudo dpkg -i build/*.deb
+# zopen --help
+# sudo dpkg -r zopen
+```
+
+#### **Automated Test Execution**
+
+Using the dev.py wrapper for automated testing:
+
+```bash
+# Run just the tests
+./scripts/dev.py test
+
+# Run full workflow (test → build → package)
+./scripts/dev.py full --version 0.7.0
+
+# View available dev.py commands
+./scripts/dev.py help
+```
+
+#### **Adding Automated Tests (Future)**
+
+If automated unit tests are added to the `tests/` directory, they can be run with:
+
+```bash
+# Quick test run
+pytest
+
+# Verbose with coverage
+pytest -v --cov=zopen --cov-report=html
+
+# Run specific test file
+pytest tests/test_mime_detection.py -v
+
+# Run specific test
+pytest tests/test_mime_detection.py::TestMimeDetector::test_detect_text -v
+```
+
+### Manual Testing Checklist (Quick Reference)
 
 Before committing changes:
 
@@ -300,14 +586,6 @@ python zopen.py util diagnose
 
 # 6. Test with actual file opening
 python zopen.py /path/to/test.txt
-```
-
-### Adding Automated Tests (Future)
-
-If tests are added, run them with:
-
-```bash
-python -m pytest tests/ -v --cov=zopen --cov-report=html
 ```
 
 ## Build and Packaging

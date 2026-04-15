@@ -23,6 +23,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 # ── Python interpreter ────────────────────────────────────────────────────────
+# Check for virtual environment first (for local development)
+if(EXISTS "${CMAKE_SOURCE_DIR}/.venv/bin/python")
+    message(STATUS "Found virtual environment at ${CMAKE_SOURCE_DIR}/.venv")
+    set(Python3_EXECUTABLE "${CMAKE_SOURCE_DIR}/.venv/bin/python" CACHE STRING "Python executable")
+endif()
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 message(STATUS "Python: ${Python3_EXECUTABLE} (${Python3_VERSION})")
