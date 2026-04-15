@@ -21,17 +21,22 @@ A single-file Python application that intelligently launches appropriate applica
 ### Installation
 
 ```bash
-# Using pip (simplest method)
+# Using uv (fastest - recommended)
+uv pip install zopen
+
+# Or using standard pip
 pip install zopen
 
 # Or using system package
 sudo apt install zopen           # Ubuntu/Debian
-brew install z-open             # macOS
+brew install z-open             # macOS (if available)
 
-# From source
+# From source (development)
 git clone https://github.com/pilakkat1964/z-open.git
 cd z-open
-pip install -e .
+uv venv
+source .venv/bin/activate
+uv pip install -e .
 ```
 
 ### Basic Usage
@@ -279,15 +284,21 @@ Z-Open uses a streamlined development workflow:
 ### Build Commands
 
 ```bash
-# Using pip (simplest)
+# Using uv (fastest)
+uv venv
+source .venv/bin/activate
+uv pip install .
+uv pip install ".[dev]"           # with dev dependencies
+
+# Using standard pip
 pip install .
-pip install ".[dev]"           # with dev dependencies
+pip install ".[dev]"              # with dev dependencies
 
 # Using CMake (for packages)
 mkdir build && cd build
 cmake ..
 make
-make package                   # creates DEB package
+make package                       # creates DEB package
 ```
 
 See [scripts/README.md](../scripts/README) for complete development tool documentation.

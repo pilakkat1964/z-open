@@ -19,17 +19,34 @@ zopen README.md        → typora       (.md extension mapping)
 
 ## Quick start
 
+**Using uv (fast, recommended):**
 ```bash
-# Install
-pip install .                   # from source
-pip install ".[magic]"          # with accurate content-based MIME detection
+# Install uv if you don't have it
+# See: https://docs.astral.sh/uv/getting-started/
+
+# Install zopen
+uv pip install .                   # from source
+uv pip install ".[magic]"          # with accurate content-based MIME detection
 
 # Use
-zopen myfile.py                  # open with the configured editor
-ze myfile.py                    # same — 'ze' is a symlink/alias for 'zopen'
-zopen --dry-run *.md             # preview without opening
-zopen --list                     # show all configured mappings
-zopen --init-config              # scaffold ~/.config/zopen/config.toml
+uv run zopen myfile.py            # open with the configured editor
+```
+
+**Using pip:**
+```bash
+# Install
+pip install .                     # from source
+pip install ".[magic]"            # with accurate content-based MIME detection
+
+# Use
+zopen myfile.py                   # open with the configured editor
+```
+
+**Additional commands:**
+```bash
+zopen --dry-run *.md              # preview without opening
+zopen --list                      # show all configured mappings
+zopen --init-config               # scaffold ~/.config/zopen/config.toml
 ```
 
 ---
@@ -73,11 +90,29 @@ prefer_mime = true         # MIME wins over extension when both match
 
 ---
 
-## Dependencies
+## Installation & Dependencies
 
 | Package | Required | Purpose |
 |---|---|---|
-| Python >= 3.11 | Yes | `tomllib` in stdlib |
+| Python >= 3.10 | Yes | Language runtime (3.11+ for tomllib) |
+| **uv** | Recommended | Fast Python package management |
+| `pip` or `uv pip` | Yes | Package installation |
 | `python-magic` | Recommended | Content-based MIME detection via libmagic |
+
+**Installation methods:**
+
+```bash
+# Fastest: using uv (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh    # Install uv
+uv pip install .                                     # Install zopen
+
+# Standard: using pip
+pip install .
+
+# Development: create virtual environment first
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"    # Editable install with dev tools
+```
 
 Without `python-magic` the app falls back to extension-based guessing.

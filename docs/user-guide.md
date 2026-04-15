@@ -77,20 +77,59 @@ sudo apt-get purge zopen
 
 ---
 
-### 1.2 From a Python wheel (pip)
+### 1.2 From a Python wheel (uv pip or pip - Recommended)
 
 Suitable for user-level installs without root privileges, virtual environments,
-or any platform with Python ≥ 3.11.
+or any platform with Python ≥ 3.10.
+
+**Using uv (faster, recommended):**
+
+First [install uv](https://docs.astral.sh/uv/getting-started/) if you don't have it:
+
+```bash
+# On macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with homebrew
+brew install uv
+
+# Or with pip
+pip install uv
+```
+
+Then install zopen:
 
 ```bash
 # Install for the current user only (no root needed)
-pip install --user zopen-0.5.0-py3-none-any.whl
+uv pip install --user zopen-0.6.5-py3-none-any.whl
 
 # Or install into the active virtual environment
-pip install zopen-0.5.0-py3-none-any.whl
+uv pip install zopen-0.6.5-py3-none-any.whl
 
 # With libmagic support (recommended)
-pip install "zopen-0.5.0-py3-none-any.whl[magic]"
+uv pip install "zopen-0.6.5-py3-none-any.whl[magic]"
+
+# Or directly from source (auto-builds wheel)
+uv pip install .
+uv pip install ".[magic]"
+
+# Create a virtual environment and install
+uv venv .venv
+source .venv/bin/activate
+uv pip install .
+```
+
+**Using standard pip:**
+
+```bash
+# Install for the current user only (no root needed)
+pip install --user zopen-0.6.5-py3-none-any.whl
+
+# Or install into the active virtual environment
+pip install zopen-0.6.5-py3-none-any.whl
+
+# With libmagic support (recommended)
+pip install "zopen-0.6.5-py3-none-any.whl[magic]"
 
 # Or directly from source
 pip install .
@@ -100,6 +139,23 @@ pip install ".[magic]"
 > **Note:** A pip install does **not** create `/opt/etc/zopen/config.toml`.
 > The system-wide config layer is simply skipped when that file does not exist.
 > Use `zopen --init-config` to create a personal config instead.
+
+**Running zopen after install:**
+
+```bash
+# If installed with uv (without explicit activation)
+uv run zopen myfile.py
+
+# If activated in a virtual environment
+source .venv/bin/activate
+zopen myfile.py
+
+# If installed for current user with --user
+~/.local/bin/zopen myfile.py
+# Or add ~/.local/bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+zopen myfile.py
+```
 
 ---
 

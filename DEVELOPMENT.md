@@ -44,17 +44,55 @@ If you prefer to manage the virtual environment yourself:
 
 #### **Option 1: Using uv (Fast & Recommended)**
 
+**Benefits:** 10-100x faster than pip, zero external dependencies, automatic venv management
+
+First, [install uv](https://docs.astral.sh/uv/getting-started/):
+
+```bash
+# On macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with homebrew
+brew install uv
+
+# Or with pip
+pip install uv
+```
+
+Then set up z-open:
+
 ```bash
 # Clone the repository
 git clone git@github.com:pilakkat1964/z-open.git
 cd z-open
 
-# Use the provided activation script (automatic venv setup)
+# Use the provided activation script (automatic venv setup with uv)
 source scripts/activate.sh
+
+# Or manually with uv:
+uv venv --python 3.10        # Create venv
+source .venv/bin/activate    # Activate
+uv pip install -e ".[dev]"   # Install dependencies
 
 # Verify setup
 python --version
 python zopen.py --help
+```
+
+**Using uv for package management:**
+
+```bash
+# Install new packages
+uv pip install package-name
+
+# Install from wheel
+uv pip install dist/zopen-0.6.5-py3-none-any.whl
+
+# Install with extras
+uv pip install ".[magic]"
+
+# Run Python without explicit activation
+uv run python zopen.py --help
 ```
 
 #### **Option 2: Using standard venv**
@@ -68,7 +106,7 @@ cd z-open
 python3.10 -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
+# Install dependencies with pip
 pip install --upgrade pip setuptools wheel
 pip install -e ".[dev]"
 
@@ -81,22 +119,32 @@ python zopen.py config list
 
 Once your venv is set up, use one of these approaches:
 
-**Approach 1: Activate then run (recommended for interactive development)**
+**Approach 1: Activate then run with uv (recommended for interactive development)**
 ```bash
 source scripts/activate.sh
+# Then use uv pip for fast package management
+uv pip install package-name
 python zopen.py --help
 pytest
 cmake --build build --target deb
 ```
 
-**Approach 2: Use the with-venv wrapper (for one-off commands)**
+**Approach 2: Use uv run (no activation needed)**
+```bash
+# Run commands directly in venv without activation
+uv run python zopen.py --help
+uv run pytest
+uv run python -c "from zopen import ConfigManager; print(ConfigManager())"
+```
+
+**Approach 3: Use the with-venv wrapper (for one-off commands)**
 ```bash
 scripts/with-venv python zopen.py --help
 scripts/with-venv pytest
-scripts/with-venv pip install somepackage
+scripts/with-venv uv pip install somepackage
 ```
 
-**Approach 3: Use dev.py wrapper (for release workflows)**
+**Approach 4: Use dev.py wrapper (for release workflows)**
 ```bash
 ./scripts/dev.py test
 ./scripts/dev.py build

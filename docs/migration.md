@@ -38,7 +38,12 @@ Guide for upgrading zopen to newer versions. Follow the appropriate section base
 
 ### During Upgrade
 
-**If installed via pip:**
+**If installed via uv (recommended):**
+```bash
+uv pip install --upgrade zopen
+```
+
+**If installed via standard pip:**
 ```bash
 pip install --upgrade zopen
 ```
@@ -49,7 +54,13 @@ sudo apt update
 sudo apt upgrade zopen
 ```
 
-**From source:**
+**From source with uv:**
+```bash
+git pull origin master
+uv pip install -e .
+```
+
+**From source with pip:**
 ```bash
 git pull origin master
 pip install -e .
@@ -224,7 +235,13 @@ prefer_mime = true
 python --version
 ```
 
-**If upgrading Python version:**
+**If upgrading Python version with uv:**
+```bash
+uv pip install --upgrade pip
+uv pip install --upgrade zopen
+```
+
+**If upgrading Python version with pip:**
 ```bash
 pip install --upgrade pip
 pip install --upgrade zopen
@@ -349,7 +366,10 @@ If you need to revert to a previous version:
 ### Rollback from v0.7.x to v0.6.x
 
 ```bash
-# Using pip
+# Using uv (recommended)
+uv pip install 'zopen==0.6.4'
+
+# Or using standard pip
 pip install 'zopen==0.6.4'
 
 # Or using apt (if installed system-wide)

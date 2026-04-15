@@ -44,13 +44,35 @@ The zopen module provides a clean Python API for determining which application s
 
 ## Installation
 
-### Option 1: Install from pip
+### Option 1: Install from uv (Recommended)
+
+Fast package management with automatic virtual environment support:
+
+```bash
+# If uv is not installed, get it first
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install zopen
+uv pip install zopen
+```
+
+### Option 2: Install from pip
 
 ```bash
 pip install zopen
 ```
 
-### Option 2: Development Install
+### Option 3: Development Install with uv
+
+```bash
+git clone git@github.com:pilakkat1964/z-open.git
+cd z-open
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+### Option 4: Development Install with pip
 
 ```bash
 git clone git@github.com:pilakkat1964/z-open.git
@@ -58,7 +80,7 @@ cd z-open
 pip install -e .
 ```
 
-### Option 3: Direct File
+### Option 5: Direct File
 
 For deployment where packaging is not available, simply copy `zopen.py` to your project:
 

@@ -83,15 +83,26 @@ zopen/
 
 | Tool | Minimum version | Purpose |
 |---|---|---|
-| Python | 3.11 | `tomllib` stdlib; running the app |
-| pip | 22.0 | Python package installation |
+| Python | 3.10+ | `tomllib` stdlib (3.11+); running the app |
+| **uv** (recommended) or pip | 0.1.0+ or 22.0 | Python package installation |
+
+> **Recommended:** Install [uv](https://docs.astral.sh/uv/getting-started/) for faster, more reliable package management. It automatically handles virtual environments and has zero external dependencies.
 
 ### Python wheel builds
 
 | Tool | Install | Purpose |
 |---|---|---|
-| `python-build` | `pip install build` or `apt install python3-build` | `python -m build` |
-| `setuptools` | `pip install setuptools>=68` or `apt install python3-setuptools` | Build backend |
+| `python-build` | `uv pip install build` or `apt install python3-build` | `python -m build` |
+| `setuptools` | `uv pip install setuptools>=68` or `apt install python3-setuptools` | Build backend |
+
+**Recommended workflow with uv:**
+
+```bash
+# Fast setup with uv (auto-creates venv, installs build tools)
+uv venv --python 3.10
+source .venv/bin/activate      # or use 'uv run python ...'
+uv pip install build setuptools
+```
 
 ### CMake builds
 
@@ -99,7 +110,7 @@ zopen/
 |---|---|---|
 | CMake | 3.20 | `apt install cmake` / download from cmake.org |
 | Make or Ninja | any | `apt install make` / `apt install ninja-build` |
-| `python-build` | — | Required when `EDIT_BUILD_WHEEL=ON` (default) |
+| `python-build` | — | Required when `ZOPEN_BUILD_WHEEL=ON` (default) |
 
 ### Debian native packaging
 
@@ -122,18 +133,41 @@ sudo apt-get install cmake debhelper dh-python python3-all \
 ### Optional runtime dependency (all methods)
 
 ```bash
-sudo apt-get install python3-magic    # Debian/Ubuntu
-pip install python-magic              # PyPI
+# Recommended: using uv
+uv pip install python-magic
+
+# Or with standard pip
+pip install python-magic
+
+# Or with apt
+sudo apt-get install python3-magic
 ```
 
 ---
 
-## 3. Python packaging (pip / wheel)
+## 3. Python packaging (uv pip / wheel)
 
 ### 3.1 Building a wheel
 
 A wheel is a pre-built distribution archive (`.whl`). It contains the Python
 module and entry-point metadata, ready for pip to install.
+
+**Using uv (recommended):**
+
+```bash
+# Setup: create virtual environment and install build tools
+uv venv --python 3.10
+source .venv/bin/activate
+uv pip install build
+
+# Build a wheel (output goes to dist/)
+python -m build --wheel
+
+# Build both a wheel and a source distribution
+python -m build
+```
+
+**Using standard pip:**
 
 ```bash
 # Install the build frontend
@@ -149,25 +183,54 @@ python -m build
 Output files:
 ```
 dist/
-├── zopen-0.5.0-py3-none-any.whl      # wheel
-└── zopen-0.5.0.tar.gz                # source distribution
+├── zopen-0.6.5-py3-none-any.whl      # wheel
+└── zopen-0.6.5.tar.gz                # source distribution
 ```
 
 The wheel filename encodes:
 - `zopen` — package name
-- `0.5.0` — version
+- `0.6.5` — version
 - `py3` — Python 3 compatible
 - `none` — not ABI-specific (pure Python)
 - `any` — not platform-specific
 
-### 3.2 Installing with pip
+### 3.2 Installing with uv pip (recommended)
+
+`uv pip` provides fast, reliable package management with automatic virtual environment support.
 
 ```bash
 # Install from the wheel file
-pip install dist/zopen-0.5.0-py3-none-any.whl
+uv pip install dist/zopen-0.6.5-py3-none-any.whl
 
 # Install with the optional libmagic binding
-pip install "dist/zopen-0.5.0-py3-none-any.whl[magic]"
+uv pip install "dist/zopen-0.6.5-py3-none-any.whl[magic]"
+
+# Install directly from source (builds wheel on the fly)
+uv pip install .
+uv pip install ".[magic]"
+
+# Install for the current user only (no root needed)
+uv pip install --user .
+
+# Create and use a virtual environment with automatic activation
+uv venv .venv
+source .venv/bin/activate
+uv pip install .
+
+# Or use uv run to execute in venv without explicit activation
+uv run python zopen.py --help
+```
+
+### 3.3 Installing with standard pip
+
+If you prefer standard pip instead of uv:
+
+```bash
+# Install from the wheel file
+pip install dist/zopen-0.6.5-py3-none-any.whl
+
+# Install with the optional libmagic binding
+pip install "dist/zopen-0.6.5-py3-none-any.whl[magic]"
 
 # Install directly from source (builds wheel on the fly)
 pip install .
@@ -185,16 +248,22 @@ pip install .
 After installation, the `zopen` command is available in the active
 environment's `bin/` directory.
 
-### 3.3 Editable / developer install
+### 3.4 Editable / developer install
 
 An editable install creates a link back to the source file so changes take
 effect immediately without reinstalling:
 
+**Using uv (recommended):**
+```bash
+uv pip install -e .
+```
+
+**Using standard pip:**
 ```bash
 pip install -e .
 ```
 
-### 3.4 `pyproject.toml` reference
+### 3.5 `pyproject.toml` reference
 
 ```toml
 [build-system]
@@ -203,27 +272,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "zopen"
-version         = "0.1.0"
+version         = "0.6.5"
 description     = "Smart file editor launcher …"
 readme          = "README.md"        # shown on PyPI
-requires-python = ">=3.11"           # tomllib requires 3.11
+requires-python = ">=3.10"           # tomllib requires 3.11
 license         = "MIT"              # SPDX expression
 keywords        = ["editor", "mime", "launcher", "cli"]
 dependencies    = []                 # no mandatory runtime deps
 
 [project.optional-dependencies]
-magic = ["python-magic"]             # install with pip install ".[magic]"
+magic = ["python-magic"]             # install with uv pip install ".[magic]"
+dev   = ["pytest>=9.0", "coverage>=7.0"]  # dev dependencies
 
 [project.scripts]
 zopen = "zopen:main"                 # creates bin/zopen → calls zopen.main()
 
 [tool.setuptools]
-py-modules = ["edit"]                # only package the zopen.py module
+py-modules = ["zopen"]               # only package the zopen.py module
 ```
 
 Key points:
 
-- `py-modules = ["edit"]` tells setuptools to install only `zopen.py`, not any
+- `py-modules = ["zopen"]` tells setuptools to install only `zopen.py`, not any
   other `.py` files it might find in the directory.
 - `[project.scripts]` defines the console entry point. pip generates a
   thin wrapper script at install time that calls `zopen.main()`.

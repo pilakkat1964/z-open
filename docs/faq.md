@@ -32,9 +32,12 @@ This guide addresses common questions, unexpected behaviors, and advanced scenar
 | Scenario | Method | Command |
 |----------|--------|---------|
 | System-wide, Debian/Ubuntu | Debian package | `sudo apt install zopen` |
-| User-level, no sudo needed | pip (user) | `pip install --user zopen` |
-| Development/contributing | Editable | `pip install -e .` |
-| Isolated, reproducible environment | Virtual environment | `python -m venv venv && pip install zopen` |
+| User-level, no sudo needed | uv pip (fast) | `uv pip install --user zopen` |
+| User-level, no sudo needed | pip (standard) | `pip install --user zopen` |
+| Development/contributing | Editable with uv | `uv venv && source .venv/bin/activate && uv pip install -e .` |
+| Development/contributing | Editable with pip | `pip install -e .` |
+| Isolated, reproducible environment | Virtual environment with uv | `uv venv && source .venv/bin/activate && uv pip install zopen` |
+| Isolated, reproducible environment | Virtual environment with pip | `python -m venv venv && source venv/bin/activate && pip install zopen` |
 | One-off testing | Direct Python | `python zopen.py --help` |
 
 ### Q: I installed via pip but `zopen` is not in my PATH
