@@ -5,7 +5,7 @@
 baseurl: /z-open
 
 # Theme
-theme: jekyll-theme-slate
+theme: jekyll-theme-architect
 
 # Site Information
 title: Z-Open
