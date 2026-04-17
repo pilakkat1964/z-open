@@ -1,61 +1,37 @@
-# GitHub Pages Jekyll Configuration for z-open
-# Theme: jekyll-theme-slate
-
-# Base URL for GitHub Pages deployment
 baseurl: /z-open
-
-# Theme
 theme: jekyll-theme-architect
-
-# Site Information
 title: Z-Open
-description: "Smart file opener — opens files with the right application based on MIME type or extension"
+description: "Smart file opener \u2014 opens files with the right application based\
+  \ on MIME type or extension"
 show_downloads: true
-
-# GitHub Repository Information
 github:
   repository_url: https://github.com/pilakkat1964/z-open
   owner_name: pilakkat1964
   owner_url: https://github.com/pilakkat1964
-
-# Plugins for GitHub Pages
 plugins:
-  - jekyll-feed
-  - jekyll-relative-links
-
-# Markdown processor
+- jekyll-feed
+- jekyll-relative-links
 markdown: kramdown
-
-# Kramdown configuration
 kramdown:
   input: GFM
   syntax_highlighter: rouge
-
-# Permalink style
 permalink: /:title/
-
-# Front matter defaults
 defaults:
-  - scope:
-      path: ""
-    values:
-      layout: default
-
-# Relative links plugin configuration
+- scope:
+    path: ''
+  values:
+    layout: default
 relative_links:
   collections: true
-
-# Build settings
 keep_files:
-  - .git
-  - .github
-
-# Exclude unnecessary files
+- .git
+- .github
 exclude:
-  - Makefile
-  - .gitignore
-  - .github
-  - README.md
-  - DEVELOPMENT.md
-# Build cache bust - Wed 15 Apr 2026 10:17:24 PM AEST
-# Cache bust - Fri 17 Apr 2026 12:32:55 AM AEST
+- Makefile
+- .gitignore
+- .github
+- README.md
+- DEVELOPMENT.md
+parent_url: /z-tools
+hierarchy_level: 2
+hierarchy_parent_title: Z-Tools Portfolio
